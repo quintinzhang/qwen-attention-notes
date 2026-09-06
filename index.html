@@ -1,0 +1,1034 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>看得更远，记得更准，答得上来 · Qwen Attention 演进（Agent 面试版）</title>
+<style>
+:root{
+  --paper:#F6F3EC; --card:#FFFDF8; --ink:#28231C; --muted:#7C7466; --line:#E5DCCB;
+  --teal:#0F766E; --tealbg:#E7F4F0; --amber:#B45309; --amberbg:#FBF1DC;
+  --red:#B42318; --redbg:#FBECEA; --blue:#1D4ED8; --bluebg:#E8EEFB;
+  --green:#047857; --greenbg:#E5F3EA; --purple:#6D28D9; --purplebg:#F0EAFB;
+  --serif:"Noto Serif SC","Songti SC","STSong","SimSun",serif;
+  --sans:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",-apple-system,"Segoe UI",sans-serif;
+  --mono:"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.9;
+  background-image:repeating-linear-gradient(0deg,rgba(120,100,60,.022) 0 1px,transparent 1px 28px)}
+#bar{position:fixed;top:0;left:0;height:3px;background:var(--teal);width:0;z-index:99}
+.wrap{display:flex;align-items:flex-start}
+/* ---------- TOC ---------- */
+nav.toc{width:252px;flex:none;position:sticky;top:0;height:100vh;overflow-y:auto;padding:36px 20px 40px 26px;border-right:1px solid var(--line)}
+nav.toc .brand{font-family:var(--serif);font-weight:700;font-size:15px;letter-spacing:.5px;margin-bottom:4px}
+nav.toc .sub{font-size:11px;color:var(--muted);letter-spacing:2px;margin-bottom:22px}
+nav.toc a{display:block;color:#5C554A;text-decoration:none;font-size:13px;padding:6px 10px;border-radius:8px;line-height:1.5;border-left:2px solid transparent}
+nav.toc a:hover{background:#EFE9DB;color:var(--ink)}
+nav.toc a.on{color:var(--teal);background:var(--tealbg);border-left-color:var(--teal);font-weight:600}
+nav.toc a b{font-family:var(--mono);font-weight:600;font-size:11px;margin-right:6px;color:inherit;opacity:.7}
+main{flex:1;min-width:0}
+.inner{max-width:800px;margin:0 auto;padding:0 34px 90px}
+/* ---------- hero ---------- */
+header.hero{padding:78px 0 46px;border-bottom:3px double var(--line)}
+.hero .kick{font-size:12px;letter-spacing:4px;color:var(--teal);font-weight:700;margin-bottom:18px}
+.hero h1{font-family:var(--serif);font-size:44px;line-height:1.35;font-weight:900;letter-spacing:1px}
+.hero h1 em{font-style:normal;color:var(--teal);border-bottom:6px solid #CBE5DF}
+.hero .lede{margin-top:20px;font-size:16.5px;color:#544D42;max-width:640px}
+.hero .meta{margin-top:26px;display:flex;gap:10px;flex-wrap:wrap}
+.hero .chip{font-size:12px;color:#6B6355;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:4px 13px}
+.hero .chip b{color:var(--teal)}
+/* ---------- sections ---------- */
+section{margin-top:84px}
+.gnum{font-family:var(--serif);font-size:66px;font-weight:900;color:#E9DFC6;line-height:1;letter-spacing:2px}
+h2{font-family:var(--serif);font-size:29px;font-weight:900;margin:6px 0 8px;letter-spacing:.5px}
+.ovl{display:inline-block;font-size:11.5px;letter-spacing:3px;color:var(--muted);border:1px solid var(--line);background:var(--card);border-radius:999px;padding:3px 12px;margin-bottom:14px}
+h3{font-family:var(--serif);font-size:19.5px;font-weight:800;margin:42px 0 10px;color:#33291D}
+h3::before{content:"§ ";color:var(--teal)}
+p{margin:13px 0;color:#3B352B}
+.hl{background:linear-gradient(transparent 60%,#F3DFA6 60%);padding:0 2px;font-weight:600}
+strong{color:#211C14}
+a{color:var(--teal)}
+/* callouts */
+.co{border-radius:12px;padding:16px 20px;margin:26px 0;border:1px solid;font-size:15px}
+.co .tag{display:block;font-size:11.5px;letter-spacing:2.5px;font-weight:800;margin-bottom:8px}
+.co.interview{background:var(--amberbg);border-color:#EBD9B4}
+.co.interview .tag{color:var(--amber)}
+.co.agent{background:var(--tealbg);border-color:#C4E2DA}
+.co.agent .tag{color:var(--teal)}
+.co.pit{background:var(--redbg);border-color:#EFCBC6}
+.co.pit .tag{color:var(--red)}
+.co p{margin:7px 0}
+/* formula & code */
+.formula{font-family:var(--mono);font-size:13.5px;background:#F0E9D6;border:1px solid #E0D5BA;border-radius:10px;padding:13px 18px;margin:18px 0;overflow-x:auto;color:#40351F;line-height:1.8}
+code{font-family:var(--mono);font-size:.88em;background:#EFE8D6;border-radius:5px;padding:1px 6px;color:#4A3B1E}
+/* tables */
+table{width:100%;border-collapse:collapse;margin:22px 0;font-size:14px;background:var(--card);border-radius:12px;overflow:hidden;box-shadow:0 1px 0 var(--line)}
+th{font-family:var(--serif);font-size:13.5px;letter-spacing:1px;background:#EFE8D5;color:#4A4133;text-align:left;padding:10px 14px;border-bottom:2px solid var(--line)}
+td{padding:10px 14px;border-bottom:1px solid #F0EADB;vertical-align:top;color:#443D31}
+tr:last-child td{border-bottom:none}
+/* figures */
+figure.fig{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 20px 6px;margin:30px 0;box-shadow:0 2px 14px rgba(120,95,50,.06)}
+figure.fig svg{width:100%;height:auto;display:block}
+figcaption{font-size:12.5px;color:var(--muted);padding:12px 6px 10px;border-top:1px dashed var(--line);margin-top:14px;line-height:1.7}
+figcaption b{color:var(--teal);font-family:var(--mono);margin-right:8px}
+/* svg shared */
+svg text{font-family:var(--sans);fill:#463F33}
+.dg-h{font-size:15px;font-weight:700}
+.dg-t{font-size:12.5px}
+.dg-s{font-size:11px;fill:#948A79}
+.dg-w{font-weight:700}
+/* q cards (§7) */
+.qcard{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px 24px;margin:26px 0}
+.qcard .q{display:flex;gap:12px;align-items:flex-start}
+.qcard .qb{flex:none;font-family:var(--serif);font-weight:900;color:#fff;background:var(--teal);border-radius:8px;padding:2px 10px;font-size:15px;margin-top:3px}
+.qcard h4{font-family:var(--serif);font-size:17.5px;line-height:1.5}
+.qcard .aim{font-size:13px;color:var(--muted);margin:8px 0 2px}
+.qcard .aim b{color:var(--amber)}
+.qcard ul{margin:10px 0 4px 6px;list-style:none}
+.qcard li{padding-left:20px;position:relative;margin:7px 0;font-size:14.5px;color:#443D31}
+.qcard li::before{content:"▸";position:absolute;left:2px;color:var(--teal)}
+.qcard .plus{font-size:13.5px;color:var(--amber);margin-top:10px;border-top:1px dashed var(--line);padding-top:10px}
+.qcard .plus b{letter-spacing:1px}
+/* elevator script */
+.script{background:#2C2620;color:#F0E9D9;border-radius:16px;padding:28px 30px;margin:30px 0;font-size:15px;line-height:2.1}
+.script .tag{color:#E8C97D;font-size:11.5px;letter-spacing:3px;font-weight:800;display:block;margin-bottom:12px}
+.script p{color:#DCD2BE;margin:10px 0}
+/* appendix + footer */
+.appendix{margin-top:70px;border-top:3px double var(--line);padding-top:34px}
+footer{margin-top:60px;text-align:center;font-size:12.5px;color:#A29782}
+/* responsive */
+@media (max-width:1080px){
+  nav.toc{display:none}
+  .hero h1{font-size:34px}
+}
+@media (max-width:640px){
+  .inner{padding:0 16px 60px}
+  .hero{padding:48px 0 34px}
+  .hero h1{font-size:27px}
+  .hero .lede{font-size:15px}
+  .gnum{font-size:42px}
+  h2{font-size:23px}
+  h3{font-size:17.5px}
+  p{font-size:15px}
+  section{margin-top:56px}
+  .co{padding:13px 15px;font-size:14px}
+  .qcard{padding:16px 15px}
+  .qcard li{font-size:14px}
+  .script{padding:18px 16px;font-size:14px;line-height:1.95}
+  .formula{font-size:12px;padding:11px 13px}
+  table{font-size:12.5px}
+  th{padding:8px 10px}
+  td{padding:8px 10px}
+  figure.fig{padding:12px 12px 2px}
+  body{font-size:15px;line-height:1.85}
+}
+</style>
+</head>
+<body>
+<div id="bar"></div>
+<!-- shared svg markers -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<marker id="arw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="#948A79"/></marker>
+<marker id="arwB" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="#1D4ED8"/></marker>
+<marker id="arwG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="#047857"/></marker>
+<marker id="arwA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="#B45309"/></marker>
+<marker id="arwR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="#B42318"/></marker>
+<marker id="arwP" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="#6D28D9"/></marker>
+<marker id="arwT" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="#0F766E"/></marker>
+</defs></svg>
+
+<div class="wrap">
+<nav class="toc">
+  <div class="brand">看得更远 · 记得更准 · 答得上来</div>
+  <div class="sub">AGENT INTERVIEW NOTES</div>
+  <a href="#s0"><b>00</b>为什么 Agent 面试考这个</a>
+  <a href="#s1"><b>01</b>Attention 从零推导</a>
+  <a href="#s2"><b>02</b>位置编码与 RoPE</a>
+  <a href="#s3"><b>03</b>长度外推：YaRN / DCA</a>
+  <a href="#s4"><b>04</b>KV cache 与推理成本</a>
+  <a href="#s5"><b>05</b>大规模训练稳定性</a>
+  <a href="#s6"><b>06</b>线性注意力与混合架构</a>
+  <a href="#s7"><b>07</b>Agent 面试七问（实战）</a>
+  <a href="#s8"><b>08</b>总表 · 90 秒电梯稿</a>
+  <a href="#sx"><b>AP</b>附录：术语表 / 参考</a>
+</nav>
+
+<main><div class="inner">
+
+<header class="hero">
+  <div class="kick">AGENT DEVELOPMENT · INTERVIEW NOTES</div>
+  <h1>看得更远，记得更准，<em>答得上来</em></h1>
+  <p class="lede">Qwen Attention 演进的第一性原理重讲——从「模型为什么必须这样设计」推到「Agent 开发面试为什么必问这些」。所有图示均为本文自绘，每个机制都配了后端类比与面试口径。全文只预设高中数学 + Java 背景：每个术语第一次出现都会当场解释，卡住就翻文末术语表。</p>
+  <div class="meta">
+    <span class="chip">读者假设 · <b>Java 后端工程师</b></span>
+    <span class="chip">目标 · <b>Agent 开发面试可复述</b></span>
+    <span class="chip">事实基准 · <b>Qwen 官方报告与博客</b></span>
+    <span class="chip">图示 · <b>14 幅自绘 SVG</b></span>
+  </div>
+</header>
+
+<!-- ================= 00 ================= -->
+<section id="s0">
+  <div class="gnum">00</div>
+  <span class="ovl">为什么面试官总绕回底层</span>
+  <h2>Agent 开发面试，为什么会考 Attention？</h2>
+
+  <p>先给结论：<span class="hl">Agent = 「模型 + 工具调用循环」，而循环的每一轮都在把上下文越拉越长</span>。系统提示词、工具 Schema、历史对话、每轮的工具返回结果……全部堆进同一个上下文窗口。所以 Agent 开发工程师每天真正在对抗的问题，恰好就是 Qwen 这条演进史解决的四个问题：</p>
+
+  <div class="co agent"><span class="tag">📖 先对齐几个词（全文统一，后文不再重复解释）</span>
+  <p><strong>token</strong>：模型处理文字的最小单位，约等于一个字或半个词——模型眼里没有汉字，只有一串 token。<strong>上下文窗口</strong>：一次能装下的 token 数量上限，相当于模型的「工作内存」，装不下的内容它完全看不见。<strong>RAG</strong>（检索增强生成）：先从外部知识库里搜出相关材料，再塞进上下文让模型作答——相当于「开卷考试」。<strong>系统提示词 / 工具定义</strong>：写给模型的长期指令、以及可用工具的清单（名称加参数说明）。<strong>TTFT</strong>：Time To First Token，首字响应时间——从你发出请求到第一个字蹦出来的延迟。后文的 Prefill / Decode、FLOPs、logits 等词，同样会在首次出现处当场解释。</p></div>
+
+  <table>
+    <tr><th style="width:34%">Agent 的日常痛点</th><th>背后的 Attention 技术</th><th style="width:16%">对应章节</th></tr>
+    <tr><td>上下文越长，首 token 响应（TTFT）越慢、账单越贵</td><td>KV cache、GQA、稀疏 Attention、前缀缓存</td><td>第 04 章</td></tr>
+    <tr><td>模型号称 1M 上下文，真给 1M 就「读了但没用对」</td><td>RoPE 外推、YaRN、DCA</td><td>第 02 / 03 章</td></tr>
+    <tr><td>长对话里模型「忘了」前面约定 / 复制错工具参数</td><td>精确召回 vs 压缩记忆（混合架构）</td><td>第 06 章</td></tr>
+    <tr><td>长程多轮任务跑着跑着模型行为劣化</td><td>训练稳定性（QK-Norm 等）与长上下文质量</td><td>第 05 章</td></tr>
+  </table>
+
+  <p>面试官问「1M 上下文能不能取代 RAG」「为什么你的 Agent 越跑越慢」，考的不是背参数，而是<span class="hl">你能不能从 Attention 的工作原理出发，解释这些工程现象并给出分层方案</span>。这份文档就按这个目标来组织：每章先讲第一性原理，再给后端类比，最后落到 Agent 场景怎么答。</p>
+
+  <div class="co agent"><span class="tag">🔗 本章 Agent 连接点</span>
+  <p>一个典型 Agent 请求的上下文构成：<code>系统提示词 + 工具定义（几乎不变）</code> + <code>多轮对话与工具轨迹（每轮都在增长）</code>。「不变的头部」和「增长的尾部」会贯穿全文——第 04 章的前缀缓存、第 07 章的上下文管理，都建立在这个结构上。</p></div>
+</section>
+
+<!-- ================= 01 ================= -->
+<section id="s1">
+  <div class="gnum">01</div>
+  <span class="ovl">第一性原理 · 从加权平均推起</span>
+  <h2>Attention 从零推导：它到底在算什么</h2>
+
+  <h3>1.0 预备知识：三个数学工具（Java 视角，10 分钟）</h3>
+  <p>全文只用到三个数学工具，全部可以当成 Java 代码看。已经熟的同学直接跳到 1.1。</p>
+  <p><strong>工具一：向量 = 一串有序的数字。</strong>模型不认识汉字，只会算术，所以第一步是把每个词翻译成一串数——这就是「向量」，你当成 <code>double[]</code> 看就行：</p>
+  <div class="formula">// 一个词 = 一个向量（真实模型几千维，这里 3 维示意）
+double[] 猫   = { 0.9,  0.2, -0.1 };
+double[] 狗   = { 0.8,  0.3,  0.0 };   // 和"猫"很接近
+double[] 贷款 = {-0.7, -0.4,  0.6 };   // 和"猫"差得很远</div>
+  <p>每一位叫一个「维度」，可理解为某个语义特征上的取值——类比用 [价格, 重量, 评分] 描述一件商品；只是模型的几千个维度没有人类可读的名字，是训练自动学出来的。<span class="hl">真正重要的是：含义相近的词，向量方向就相近</span>，于是「语义」变成了可计算的几何关系。这张「词 → 向量」对照表叫 embedding 表，本质是巨大的 <code>Map&lt;String, double[]&gt;</code>，表里的数字全部来自训练。</p>
+  <p><strong>工具二：点积 = 相关度打分器。</strong>两个向量对应位置相乘、再全部加起来：</p>
+  <div class="formula">dot(a, b) = a₁×b₁ + a₂×b₂ + a₃×b₃ + ...
+
+dot({1,2}, {2,4})  = 1×2 + 2×4 = 10    → 同方向（语义近）→ 大正数
+dot({1,0}, {0,5})  = 1×0 + 0×5 =  0    → 互相垂直（无关）→ 约 0
+dot({1,2}, {-2,-4}) = -2 - 8  = -10    → 反方向（相反）→ 负数</div>
+  <p>直觉：两串数字在相同维度上互相印证，分数就高。Attention 的打分 <code>q·k</code> 用的就是它。</p>
+  <p><strong>工具三：Softmax = 把任意分数变成百分比预算。</strong>输入 N 个任意实数（可以负），输出 N 个<strong>正数、总和恰好 1</strong> 的权重——相当于「100% 的注意力怎么分配」。做法就两步：先对每个分数算 e 的幂（正数化 + 拉大差距），再除以总和（凑成 100%）：</p>
+  <div class="formula">softmax(zᵢ) = e^(zᵢ) / Σ e^(zⱼ)
+
+例：分数 { 2.0,  0.5,  5.0, -1.0 }
+指数 { 7.4,  1.6, 148,  0.4 }          总和 ≈ 157
+权重 { 4.7%,  1%,  94%, 0.3% }         ← 和恰好 100%</div>
+  <p>记两条性质就够用：① e 的幂永远是正数，权重合法；② <span class="hl">分数差被指数放大</span>——差 1 分权重差约 2.7 倍，差 5 分差约 148 倍，所以分数大的拿大头但不垄断（小的仍留残余）。分数差距过大时小权重会趋近 0%，这个伏笔第 05 章回收。</p>
+
+  <h3>1.1 任务本质：一次「内容感知」的加权平均</h3>
+  <p>大模型每一步只做一件事：<span class="hl">根据前面的所有 token，预测下一个 token</span>。关键在于：前面每个词的重要程度不一样。处理「她饿了」的「她」时，「小明」很关键，「今天天气晴」几乎无用。</p>
+  <p>所以模型需要一种机制：<strong>对历史信息做加权汇总，且权重由内容相关性决定</strong>。这就是 Attention 的全部本质：</p>
+  <div class="formula">输出 = Σ ( 权重ᵢ × 信息ᵢ )        其中 权重 = Softmax( 相关性分数 )</div>
+  <p>Attention 不是黑魔法，是<strong>一次内容感知的加权聚合</strong>。类比后端：MapReduce shuffle 之后按 key 做加权 merge，只不过「权重」本身也是现场算出来的。</p>
+
+  <figure class="fig">
+  <svg viewBox="0 0 900 372" role="img" aria-label="QKV 加权聚合流程图">
+    <!-- token row -->
+    <g font-size="13">
+      <rect x="36" y="22" width="64" height="34" rx="8" fill="#FFFDF8" stroke="#DDD3BF"/><text x="68" y="44" text-anchor="middle">小明</text>
+      <rect x="112" y="22" width="64" height="34" rx="8" fill="#FFFDF8" stroke="#DDD3BF"/><text x="144" y="44" text-anchor="middle">把</text>
+      <rect x="188" y="22" width="64" height="34" rx="8" fill="#FFFDF8" stroke="#DDD3BF"/><text x="220" y="44" text-anchor="middle">苹果</text>
+      <rect x="264" y="22" width="64" height="34" rx="8" fill="#FFFDF8" stroke="#DDD3BF"/><text x="296" y="44" text-anchor="middle">递给</text>
+      <rect x="340" y="22" width="64" height="34" rx="8" fill="#FFFDF8" stroke="#DDD3BF"/><text x="372" y="44" text-anchor="middle">小红</text>
+      <rect x="416" y="22" width="64" height="34" rx="8" fill="#FFFDF8" stroke="#DDD3BF"/><text x="448" y="44" text-anchor="middle">因为</text>
+      <rect x="492" y="22" width="64" height="34" rx="8" fill="#FFFDF8" stroke="#DDD3BF"/><text x="524" y="44" text-anchor="middle">饿了</text>
+      <rect x="568" y="22" width="64" height="34" rx="8" fill="#E7F4F0" stroke="#0F766E" stroke-width="2"/><text x="600" y="44" text-anchor="middle" font-weight="700" fill="#0F766E">她</text>
+    </g>
+    <!-- pipeline -->
+    <line x1="600" y1="56" x2="600" y2="98" stroke="#0F766E" stroke-width="2" marker-end="url(#arwT)"/>
+    <text x="614" y="84" font-size="12" fill="#0F766E" font-weight="700">当前 token 发起查询</text>
+    <g font-size="13" font-weight="600" text-anchor="middle">
+      <rect x="60" y="104" width="160" height="50" rx="10" fill="#E8EEFB" stroke="#1D4ED8"/><text x="140" y="134" fill="#1D4ED8">① 取出 Query</text>
+      <rect x="280" y="104" width="160" height="50" rx="10" fill="#E5F3EA" stroke="#047857"/><text x="360" y="134" fill="#047857">② 与所有 K 打分</text>
+      <rect x="500" y="104" width="160" height="50" rx="10" fill="#F0EAFB" stroke="#6D28D9"/><text x="580" y="134" fill="#6D28D9">③ Softmax 归一化</text>
+      <rect x="720" y="104" width="150" height="50" rx="10" fill="#FBF1DC" stroke="#B45309"/><text x="795" y="134" fill="#B45309">④ 对 V 加权求和</text>
+    </g>
+    <line x1="220" y1="129" x2="278" y2="129" stroke="#948A79" stroke-width="1.6" marker-end="url(#arw)"/>
+    <line x1="440" y1="129" x2="498" y2="129" stroke="#948A79" stroke-width="1.6" marker-end="url(#arw)"/>
+    <line x1="660" y1="129" x2="718" y2="129" stroke="#948A79" stroke-width="1.6" marker-end="url(#arw)"/>
+    <!-- weights bars -->
+    <text x="36" y="196" class="dg-s">②③的产物 —— 对每个历史 token 的权重（Softmax 后）：</text>
+    <g>
+      <rect x="56" y="300" width="24" height="4" fill="#C9BFA9"/><text x="68" y="320" text-anchor="middle" class="dg-s">小明 2%</text>
+      <rect x="132" y="302" width="24" height="2" fill="#C9BFA9"/><text x="144" y="320" text-anchor="middle" class="dg-s">把 1%</text>
+      <rect x="208" y="288" width="24" height="16" fill="#E4C98F"/><text x="220" y="320" text-anchor="middle" class="dg-s">苹果 5%</text>
+      <rect x="284" y="296" width="24" height="8" fill="#C9BFA9"/><text x="296" y="320" text-anchor="middle" class="dg-s">递给 3%</text>
+      <rect x="360" y="230" width="24" height="74" fill="#0F766E"/><text x="372" y="222" text-anchor="middle" font-size="12.5" font-weight="800" fill="#0F766E">82%</text><text x="372" y="320" text-anchor="middle" class="dg-s">小红</text>
+      <rect x="436" y="300" width="24" height="4" fill="#C9BFA9"/><text x="448" y="320" text-anchor="middle" class="dg-s">因为 2%</text>
+      <rect x="512" y="288" width="24" height="16" fill="#E4C98F"/><text x="524" y="320" text-anchor="middle" class="dg-s">饿了 5%</text>
+    </g>
+    <path d="M 360 154 L 372 226" stroke="#948A79" stroke-width="1.2" stroke-dasharray="4 4" fill="none"/>
+    <!-- output -->
+    <line x1="795" y1="154" x2="795" y2="236" stroke="#B45309" stroke-width="2" marker-end="url(#arwA)"/>
+    <rect x="688" y="242" width="186" height="46" rx="10" fill="#FBF1DC" stroke="#B45309" stroke-dasharray="5 3"/>
+    <text x="781" y="262" text-anchor="middle" font-size="12.5" fill="#B45309" font-weight="700">新表示（含「她→小红」信息）</text>
+    <text x="781" y="280" text-anchor="middle" font-size="11.5" fill="#948A79">用于预测下一个词</text>
+  </svg>
+  <figcaption><b>图 1</b>Attention 一次计算的完整流程：以「她饿了」的指代消解为例。Query 来自当前 token，与所有历史 Key 打分，Softmax 归一化成权重，再对 Value 加权求和。模型靠这一步把「她」的表示更新为携带「小红」语义的向量。</figcaption>
+  </figure>
+
+  <h3>1.2 Q / K / V：同一份数据的三种角色</h3>
+  <p>每个 token 的向量要扮演三个角色，所以经过三张不同的「配方表」（行话叫投影矩阵），把同一份向量重新组合出三份表示：</p>
+  <table>
+    <tr><th style="width:18%">角色</th><th>职责</th><th>后端类比</th></tr>
+    <tr><td><strong style="color:#1D4ED8">Query</strong></td><td>我在找什么样的信息？</td><td>SQL 里的 WHERE 条件</td></tr>
+    <tr><td><strong style="color:#047857">Key</strong></td><td>我这里有什么可供匹配？</td><td>索引里的词条</td></tr>
+    <tr><td><strong style="color:#B45309">Value</strong></td><td>匹配成功后我真正提供的内容</td><td>索引指向的数据行</td></tr>
+  </table>
+  <div class="formula">q = x·Wq    k = x·Wk    v = x·Wv<br>score(i,j) = qᵢ·kⱼ / √d   →   Softmax   →   对 vⱼ 加权求和</div>
+  <p>这里的「向量 × 矩阵」不用深究数学：把它当成「按一张训练学来的配方表，把向量的各个维度重新调配一遍」就够了，配方表里的数字是训练自动学出来的。三张配方不同，所以同一份底稿能变出三个分工不同的分身。</p>
+  <p><code>/√d</code>（除以维度的平方根）是一个防溢出除数：维度越多，点积里相加的项就越多、数值自然越大，除一下把它压回稳定范围。记住这条线——第 05 章「分数失控」就是它没压住的故事。</p>
+  <p><strong>多头（Multi-Head）</strong>：一组 q/k/v 只能捕捉一种关系。把向量切成 32 份各自独立做 Attention，等于 32 个并行的小检索器——有的盯语法、有的盯指代、有的盯邻近位置。类比：同一条日志流，N 个 consumer 各自订阅自己关心的字段。</p>
+
+  <h3>1.3 因果遮罩：一条不可变事件日志</h3>
+  <p>模型逐词生成时（这类逐词生成的模型行话叫 decoder）<strong>只能看过去、不能看未来</strong>——否则训练时的「预测」就是作弊。实现上靠一张许可表（行话叫 mask）：每一行只放行它自己和更早的位置。用后端视角看更妙：<span class="hl">整段上下文是一条 append-only 的不可变事件日志，已写入的历史永不改变</span>。这个性质马上在第 04 章给 KV cache 铺路——不可变数据天然适合缓存，不用考虑失效。</p>
+
+  <div class="co interview"><span class="tag">🎙 面试 30 秒 · 技术口径</span>
+  <p>Attention 本质是「由内容相关性决定权重的加权平均」。每个 token 经三个投影变换出 Query/Key/Value：Q 与所有 K 打分，Softmax 归一化后对 V 加权汇总；多头是把向量切分后并行捕捉多种关系；因果遮罩保证只看过去，等价于 append-only 日志。</p></div>
+
+  <div class="co agent"><span class="tag">🔗 Agent 连接点</span>
+  <p>Agent 框架里的「工具选择」，思想上就是一次 Attention 式检索：当前任务意图（Q）与每个工具的名称/描述/参数说明（K）匹配，选中后再取工具的完整 Schema 并执行（V）。理解了这一点，你就明白为什么<strong>工具描述写得好不好，直接决定模型选不选得对工具</strong>——描述就是 Key，Key 的质量决定检索命中率。</p></div>
+</section>
+
+<!-- ================= 02 ================= -->
+<section id="s2">
+  <div class="gnum">02</div>
+  <span class="ovl">第一个被逼出来的机制</span>
+  <h2>位置编码：模型不知道谁在前谁在后</h2>
+
+  <h3>2.1 没有位置信息时，模型看到的是「一袋词」</h3>
+  <p>先回应一个自然会产生疑问：「既然后面会算『相隔多远』，那不就能分清语序了？」——顺序反了。<span class="hl">在没有位置编码时，打分公式 score = q·k 里压根没有「位置」这个输入，连「相隔多远」这个概念都不存在</span>。打分只看两个词的内容：score(吃,我) 在两句话里是同一个数，score(吃,饭) 也是。于是整句话的效果是一袋无序的词：</p>
+  <div class="formula">// 没有位置编码的 Attention，效果上等价于把句子装进词袋：
+Map<String,Integer> 我吃饭 = {"我":1, "吃":1, "饭":1};
+Map<String,Integer> 饭吃我 = {"饭":1, "吃":1, "我":1};
+
+我吃饭.equals(饭吃我)   // → true，模型眼里是同一句话</div>
+  <p>数学上这叫<strong>置换等变</strong>：输入换序，输出只是跟着换位，任何「汇总整句」的计算都区分不出它们——「我」和「饭」谁是主语，信息在打分那一刻就丢了。</p>
+
+  <figure class="fig">
+  <svg viewBox="0 0 900 235" role="img" aria-label="置换等变示意">
+    <text x="40" y="52" class="dg-t" font-weight="700">输入 A</text>
+    <g font-size="13">
+      <rect x="95" y="28" width="54" height="34" rx="8" fill="#FFFDF8" stroke="#DDD3BF"/><text x="122" y="50" text-anchor="middle">我</text>
+      <rect x="157" y="28" width="54" height="34" rx="8" fill="#FFFDF8" stroke="#DDD3BF"/><text x="184" y="50" text-anchor="middle">吃</text>
+      <rect x="219" y="28" width="54" height="34" rx="8" fill="#FFFDF8" stroke="#DDD3BF"/><text x="246" y="50" text-anchor="middle">饭</text>
+    </g>
+    <text x="40" y="132" class="dg-t" font-weight="700">输入 B</text>
+    <g font-size="13">
+      <rect x="95" y="108" width="54" height="34" rx="8" fill="#FFFDF8" stroke="#DDD3BF"/><text x="122" y="130" text-anchor="middle">饭</text>
+      <rect x="157" y="108" width="54" height="34" rx="8" fill="#FFFDF8" stroke="#DDD3BF"/><text x="184" y="130" text-anchor="middle">吃</text>
+      <rect x="219" y="108" width="54" height="34" rx="8" fill="#FFFDF8" stroke="#DDD3BF"/><text x="246" y="130" text-anchor="middle">我</text>
+    </g>
+    <line x1="280" y1="45" x2="352" y2="75" stroke="#948A79" stroke-width="1.6" marker-end="url(#arw)"/>
+    <line x1="280" y1="125" x2="352" y2="95" stroke="#948A79" stroke-width="1.6" marker-end="url(#arw)"/>
+    <rect x="360" y="55" width="264" height="60" rx="10" fill="#F0E9D6" stroke="#E0D5BA"/>
+    <text x="492" y="80" text-anchor="middle" class="dg-t" font-weight="700">Attention 打分只看内容对</text>
+    <text x="492" y="100" text-anchor="middle" class="dg-s">两句话算出的相关度完全相同</text>
+    <line x1="624" y1="85" x2="676" y2="85" stroke="#B42318" stroke-width="2" marker-end="url(#arwR)"/>
+    <rect x="684" y="55" width="190" height="60" rx="10" fill="#FBECEA" stroke="#EFCBC6"/>
+    <text x="779" y="80" text-anchor="middle" font-size="12.5" fill="#B42318" font-weight="700">「谁吃谁」无法区分</text>
+    <text x="779" y="100" text-anchor="middle" class="dg-s">主谓宾关系全部丢失</text>
+    <text x="450" y="200" text-anchor="middle" class="dg-s">结论：位置信息必须额外注入 —— 这不是设计选择，是必须补的课</text>
+  </svg>
+  <figcaption><b>图 2</b>置换等变性：纯 Attention 对输入顺序不敏感。「我吃饭」与「饭吃我」token 完全相同，打分结果也完全相同——但语义天差地别。</figcaption>
+  </figure>
+
+  <p>所以结论是：<strong>位置信息必须额外注入</strong>——不是设计选择，是必须补的课。补的思路：给每个 token 发一个「座位号」。</p>
+
+  <h3>2.2 第一代方案：加绝对位置，以及它的失败</h3>
+  <p>最直白的做法：给每个位置配一个向量，直接加到输入上：</p>
+  <div class="formula">xᵢ = TokenEmbedding(tokenᵢ) + PositionEmbedding(i)</div>
+  <p>位置向量可以查表训练（可学习式），也可以用固定正余弦公式生成（正弦式）。两种都有硬伤。先约定一个后文反复出现的词：<strong>分布外</strong> = 训练时从没见过、超出经验范围的输入，模型遇到它容易乱来：</p>
+
+  <figure class="fig">
+  <svg viewBox="0 0 900 316" role="img" aria-label="绝对位置编码的两种缺陷">
+    <rect x="40" y="26" width="396" height="262" rx="14" fill="#FFFDF8" stroke="#E5DCCB"/>
+    <text x="238" y="58" text-anchor="middle" class="dg-h" fill="#B45309">可学习式 = 一张固定大小的表</text>
+    <g font-size="12" font-family="var(--mono)">
+      <rect x="90" y="76" width="150" height="26" rx="6" fill="#FBF1DC" stroke="#EBD9B4"/><text x="165" y="94" text-anchor="middle">P[0]</text>
+      <rect x="90" y="108" width="150" height="26" rx="6" fill="#FBF1DC" stroke="#EBD9B4"/><text x="165" y="126" text-anchor="middle">P[1]</text>
+      <rect x="90" y="140" width="150" height="26" rx="6" fill="#FBF1DC" stroke="#EBD9B4"/><text x="165" y="158" text-anchor="middle">P[2]</text>
+      <text x="165" y="186" text-anchor="middle" class="dg-s">……</text>
+      <rect x="90" y="198" width="150" height="26" rx="6" fill="#FBF1DC" stroke="#EBD9B4"/><text x="165" y="216" text-anchor="middle">P[4095]</text>
+    </g>
+    <line x1="240" y1="211" x2="300" y2="211" stroke="#B42318" stroke-width="1.8" stroke-dasharray="4 3" marker-end="url(#arwR)"/>
+    <text x="310" y="205" font-size="12.5" fill="#B42318" font-weight="700">P[4096] ❌ 越界</text>
+    <text x="310" y="224" class="dg-s">表里没有这一行，向量不存在</text>
+    <text x="238" y="264" text-anchor="middle" class="dg-s">训练长度 4K → 表只有 4096 行（类比数组越界）</text>
+
+    <rect x="464" y="26" width="396" height="262" rx="14" fill="#FFFDF8" stroke="#E5DCCB"/>
+    <text x="662" y="58" text-anchor="middle" class="dg-h" fill="#047857">正弦式 = 公式永远算得出</text>
+    <rect x="504" y="80" width="316" height="40" rx="8" fill="#E5F3EA" stroke="#C4E2DA"/>
+    <text x="662" y="105" text-anchor="middle" font-size="12.5" font-family="var(--mono)" fill="#047857">P(i) = sin/cos(i·θ)   ✓ 任意 i 都有值</text>
+    <line x1="662" y1="120" x2="662" y2="150" stroke="#B45309" stroke-width="1.8" marker-end="url(#arwA)"/>
+    <rect x="494" y="156" width="336" height="86" rx="10" fill="#FBF1DC" stroke="#EBD9B4"/>
+    <text x="662" y="184" text-anchor="middle" font-size="12.5" fill="#B45309" font-weight="700">⚠ 但训练只见过 i ∈ [0, 4095]</text>
+    <text x="662" y="206" text-anchor="middle" class="dg-s">更大的 i 属于分布外数据：能算出来</text>
+    <text x="662" y="226" text-anchor="middle" class="dg-s">≠ 模型学会了怎么解释它</text>
+    <text x="662" y="264" text-anchor="middle" class="dg-s">类比：时间戳格式支持到 9999 年，下游逻辑没学过</text>
+  </svg>
+  <figcaption><b>图 3</b>绝对位置编码的两种实现各有硬伤：可学习式超出表长即「数组越界」；正弦式任意位置都有数学值，但超出训练范围后属于分布外输入，行为不可预期。</figcaption>
+  </figure>
+
+  <p>但两者还有一个<strong>更根本的共同问题</strong>：注入的是「你在第几行」，而语言真正关心的是「你们相隔多远」。</p>
+
+  <figure class="fig">
+  <svg viewBox="0 0 900 268" role="img" aria-label="绝对位置与相对距离对比">
+    <line x1="150" y1="80" x2="750" y2="80" stroke="#DDD3BF" stroke-width="2"/>
+    <circle cx="320" cy="80" r="7" fill="#1D4ED8"/><text x="320" y="62" text-anchor="middle" class="dg-t">位置 10</text>
+    <circle cx="460" cy="80" r="7" fill="#1D4ED8"/><text x="460" y="62" text-anchor="middle" class="dg-t">位置 12</text>
+    <path d="M 320 100 L 320 112 L 460 112 L 460 100" stroke="#0F766E" stroke-width="2" fill="none"/>
+    <text x="390" y="130" text-anchor="middle" font-size="12.5" fill="#0F766E" font-weight="700">相隔 2</text>
+    <line x1="150" y1="190" x2="750" y2="190" stroke="#DDD3BF" stroke-width="2"/>
+    <circle cx="320" cy="190" r="7" fill="#6D28D9"/><text x="320" y="172" text-anchor="middle" class="dg-t">位置 10010</text>
+    <circle cx="460" cy="190" r="7" fill="#6D28D9"/><text x="460" y="172" text-anchor="middle" class="dg-t">位置 10012</text>
+    <path d="M 320 210 L 320 222 L 460 222 L 460 210" stroke="#0F766E" stroke-width="2" fill="none"/>
+    <text x="390" y="240" text-anchor="middle" font-size="12.5" fill="#0F766E" font-weight="700">也相隔 2</text>
+    <rect x="40" y="30" width="86" height="200" rx="10" fill="#FBECEA" stroke="#EFCBC6"/>
+    <text x="83" y="120" text-anchor="middle" font-size="12" fill="#B42318" font-weight="700">绝对位置</text>
+    <text x="83" y="140" text-anchor="middle" class="dg-s">两组完全</text>
+    <text x="83" y="156" text-anchor="middle" class="dg-s">不同的向量</text>
+    <rect x="774" y="30" width="86" height="200" rx="10" fill="#E7F4F0" stroke="#C4E2DA"/>
+    <text x="817" y="120" text-anchor="middle" font-size="12" fill="#0F766E" font-weight="700">相对距离</text>
+    <text x="817" y="140" text-anchor="middle" class="dg-s">语义模式</text>
+    <text x="817" y="156" text-anchor="middle" class="dg-s">完全相同 ✓</text>
+  </svg>
+  <figcaption><b>图 4</b>语言关心的是相对距离而非绝对坐标：(10,12) 与 (10010,10012) 的距离都是 2，理想的编码应让模型对二者一视同仁（平移不变）。绝对位置方案做不到，这就是 RoPE 出场的原因。另注意「平移 ≠ 交换」：整体挪远不改变任何一对词的距离；而交换两个词会让距离正负反转——对模型是完全不同的信号。</figcaption>
+  </figure>
+
+  <h3>2.3 关键一课：相对距离是「有符号」的——语序就藏在正负号里</h3>
+  <p>现在回答那个最容易卡住的问题：<strong>「我吃饭」和「饭吃我」里，任意两词的间隔长度都相同（吃和饭都相邻），相对距离凭什么能区分它们？</strong></p>
+  <p>因为距离不是「隔多远」这么简单，它<strong>带方向、有正负</strong>。站在「吃」的视角看：<span class="hl">「饭在我后面一格」记作 +1，「饭在我前面一格」记作 −1——这是两个不同的数</span>。而「在吃的前面还是后面」，恰恰就是主语和宾语的区别：</p>
+  <table>
+    <tr><th>站在「吃」的视角</th><th>我 吃 饭</th><th>饭 吃 我</th></tr>
+    <tr><td>「我」在哪个槽位</td><td>−1（前面 → 主语槽）</td><td>+1（后面 → 宾语槽）</td></tr>
+    <tr><td>「饭」在哪个槽位</td><td>+1（后面 → 宾语槽）</td><td>−1（前面 → 主语槽）</td></tr>
+  </table>
+
+  <figure class="fig">
+  <svg viewBox="0 0 900 316" role="img" aria-label="有符号的相对槽位">
+    <text x="320" y="32" text-anchor="middle" font-size="12.5" fill="#1D4ED8" font-weight="700">−1 槽（前面一格）</text>
+    <text x="460" y="32" text-anchor="middle" class="dg-s">中心：吃</text>
+    <text x="600" y="32" text-anchor="middle" font-size="12.5" fill="#B45309" font-weight="700">+1 槽（后面一格）</text>
+    <g font-size="14" text-anchor="middle" font-weight="700">
+      <rect x="280" y="44" width="80" height="38" rx="9" fill="#E8EEFB" stroke="#1D4ED8"/><text x="320" y="69" fill="#1D4ED8">我</text>
+      <rect x="420" y="44" width="80" height="38" rx="9" fill="#F0E9D6" stroke="#948A79"/><text x="460" y="69">吃</text>
+      <rect x="560" y="44" width="80" height="38" rx="9" fill="#FBF1DC" stroke="#B45309"/><text x="600" y="69" fill="#B45309">饭</text>
+      <text x="660" y="69" font-size="12" fill="#7C7466" font-weight="400" text-anchor="start">←「我吃饭」：饭进了宾语槽</text>
+    </g>
+    <g font-size="14" text-anchor="middle" font-weight="700">
+      <rect x="280" y="126" width="80" height="38" rx="9" fill="#E8EEFB" stroke="#1D4ED8"/><text x="320" y="151" fill="#1D4ED8">饭</text>
+      <rect x="420" y="126" width="80" height="38" rx="9" fill="#F0E9D6" stroke="#948A79"/><text x="460" y="151">吃</text>
+      <rect x="560" y="126" width="80" height="38" rx="9" fill="#FBF1DC" stroke="#B45309"/><text x="600" y="151" fill="#B45309">我</text>
+      <text x="660" y="151" font-size="12" fill="#7C7466" font-weight="400" text-anchor="start">←「饭吃我」：饭进了主语槽</text>
+    </g>
+    <line x1="320" y1="198" x2="320" y2="218" stroke="#1D4ED8" stroke-width="1.6"/>
+    <text x="320" y="238" text-anchor="middle" font-size="12.5" fill="#1D4ED8" font-weight="700">主语槽（施动者）</text>
+    <line x1="600" y1="198" x2="600" y2="218" stroke="#B45309" stroke-width="1.6"/>
+    <text x="600" y="238" text-anchor="middle" font-size="12.5" fill="#B45309" font-weight="700">宾语槽（受动者）</text>
+    <text x="450" y="278" text-anchor="middle" class="dg-s">两句话唯一的区别：谁坐进 ±1 槽。±1 是两个不同的数，注意力分数随之不同</text>
+    <text x="450" y="298" text-anchor="middle" class="dg-s">→「谁在吃的前面 / 后面」成为可学习的语序信号</text>
+  </svg>
+  <figcaption><b>图 5</b>有符号的相对距离：站在「吃」的视角，前一格是 −1、后一格是 +1。两句话的所有间隔长度都相同，但 ±1 槽里坐的词正好互换——语序信息就藏在这个正负号里。</figcaption>
+  </figure>
+
+  <p>于是模型可以学到一条方向性语法：「−1 槽里的词是施动者（主语），+1 槽里的词是受动者（宾语）」。两句话里坐进 ±1 槽的词正好互换，语义判断随之相反。<span class="hl">相对距离能区分语序，靠的不是「隔多远」，而是「在前还是在后」这个正负号</span>。</p>
+  <p>顺带解开一个可能的纠结：2.2 说 (10,12) 和 (10010,10012) 等价，那把两个词交换位置也等价吗？不等价。<strong>平移 ≠ 交换</strong>：整体平移（所有位置一起 +10000）不改变任何一对词的相对距离；而交换两个词会让它们之间的距离正负反转（+1 变 −1）——在模型眼里是完全不同的信号。</p>
+
+  <h3>2.4 RoPE：把「有符号的相对距离」旋进点积</h3>
+  <p>RoPE（Rotary Position Embedding，旋转位置编码）换了思路：<span class="hl">不往输入上加位置，而是在每层 Attention 里按位置旋转 Q 和 K</span>。把 q、k 的每小段维度想成平面上的指针：位置 m 的 token，指针旋转 m×θ。关键在于<strong>角差有正负</strong>——后面的词转得多、前面的词转得少，两根指针的夹角因此带上方向：「+1 格」和「−1 格」会给出不同的打分，2.3 说的方向信息就这样进入了注意力。</p>
+
+  <figure class="fig">
+  <svg viewBox="0 0 900 330" role="img" aria-label="RoPE 旋转指针示意">
+    <circle cx="230" cy="172" r="105" fill="none" stroke="#E5DCCB" stroke-width="2"/>
+    <line x1="230" y1="172" x2="139" y2="120" stroke="#1D4ED8" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="139" cy="120" r="6" fill="#1D4ED8"/>
+    <text x="112" y="112" text-anchor="middle" font-size="12.5" fill="#1D4ED8" font-weight="700">q（位置 m）</text>
+    <line x1="230" y1="172" x2="194" y2="76" stroke="#047857" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="194" cy="76" r="6" fill="#047857"/>
+    <text x="216" y="62" text-anchor="middle" font-size="12.5" fill="#047857" font-weight="700">k（位置 n）</text>
+    <path d="M 214.6 132.7 A 45 45 0 0 1 191 152.5" stroke="#6D28D9" stroke-width="2.5" fill="none"/>
+    <text x="258" y="118" font-size="12.5" fill="#6D28D9" font-weight="700">夹角 = (m−n)·θ</text>
+    <circle cx="230" cy="172" r="4" fill="#463F33"/>
+    <text x="230" y="312" text-anchor="middle" class="dg-s">点积 q·k 只取决于夹角 → 相对距离 (m−n) 直接进入相似度打分</text>
+
+    <rect x="500" y="40" width="368" height="118" rx="12" fill="#FFFDF8" stroke="#E5DCCB"/>
+    <text x="684" y="70" text-anchor="middle" class="dg-h">频率有快有慢（像钟表指针）</text>
+    <g>
+      <circle cx="560" cy="118" r="26" fill="none" stroke="#C9BFA9" stroke-width="1.5"/>
+      <line x1="560" y1="118" x2="573" y2="98" stroke="#B42318" stroke-width="2.5" stroke-linecap="round"/>
+      <text x="560" y="164" text-anchor="middle" class="dg-s">高频·秒针</text>
+      <text x="560" y="180" text-anchor="middle" class="dg-s">分辨近距离</text>
+      <circle cx="684" cy="118" r="26" fill="none" stroke="#C9BFA9" stroke-width="1.5"/>
+      <line x1="684" y1="118" x2="697" y2="106" stroke="#B45309" stroke-width="2.5" stroke-linecap="round"/>
+      <text x="684" y="164" text-anchor="middle" class="dg-s">中频·分针</text>
+      <circle cx="808" cy="118" r="26" fill="none" stroke="#C9BFA9" stroke-width="1.5"/>
+      <line x1="808" y1="118" x2="815" y2="111" stroke="#0F766E" stroke-width="2.5" stroke-linecap="round"/>
+      <text x="808" y="164" text-anchor="middle" class="dg-s">低频·时针</text>
+      <text x="808" y="180" text-anchor="middle" class="dg-s">承载远距离</text>
+    </g>
+    <rect x="500" y="184" width="368" height="52" rx="10" fill="#F0EAFB" stroke="#E0D5F0"/>
+    <text x="684" y="206" text-anchor="middle" font-size="13.5" font-family="var(--mono)" fill="#6D28D9" font-weight="700">q_m · k_n = f(q, k, m − n)</text>
+    <text x="684" y="226" text-anchor="middle" class="dg-s">位置 (10,12) 与 (10010,10012) 产生完全相同的相互作用</text>
+    <text x="684" y="272" text-anchor="middle" class="dg-s">不同频率的设计，为第 03 章 YaRN 的「分频缩放」埋下伏笔</text>
+  </svg>
+  <figcaption><b>图 6</b>RoPE 的指针直觉：q、k 按各自位置旋转，做点积时只看两者夹角（相对距离）。不同维度用不同旋转频率——高频像秒针分辨相邻 token，低频像时针承载长距离。Qwen1 起 causal MHA + RoPE 成为所有版本的底座。</figcaption>
+  </figure>
+
+  <p><strong>重要转折</strong>：RoPE 解决的是「怎样表示相对位置」，<span class="hl">没有解决「模型会不会用没见过的距离」</span>。训练时最大相对距离 4K，推理时来了 100 万——m−n = 999998 这个角度差模型从未见过。于是进入第二个问题。</p>
+
+  <div class="co interview"><span class="tag">🎙 面试 30 秒 · 技术口径</span>
+  <p>纯 Attention 打分只看内容、不含位置，效果等价于词袋——「我吃饭」和「饭吃我」无法区分，所以位置必须额外注入。早期方案是加绝对位置向量：可学习式超表即越界，正弦式能算但属分布外。RoPE 改为按位置旋转 Q/K，点积只依赖相对距离 m−n——注意这个距离<strong>有正负</strong>：「你在我前面一格」（−1）和「后面一格」（+1）是不同的旋转角差、不同的分数，模型由此学到方向性语法（−1 槽主语、+1 槽宾语），同时整体平移不影响打分（平移不变）。不同维度不同频率，高频辨近处、低频承远景。</p></div>
+
+  <div class="co interview"><span class="tag">🧑‍🏫 把这章讲给别人（三句话脚本）</span>
+  <p>① 没有位置编码时，Attention 等于词袋，「我吃饭」和「饭吃我」是同一句话——因为打分公式里根本没有位置；② 所以给每个词发座位号，但绝对座位号外推差，RoPE 改成「按座位旋转 QK」，打分只看相对关系；③ 最容易被追问的点：相对距离<strong>有正负</strong>——前面一格是 −1、后面一格是 +1，主语宾语的区别就藏在这个符号里（可再补一句「平移 ≠ 交换」）。</p></div>
+
+  <div class="co agent"><span class="tag">🔗 Agent 连接点</span>
+  <p>Agent 的对话常常「第 50 轮引用第 2 轮的约定」——跨长距离的指代与状态回溯，正依赖相对位置的编码质量。另外 <strong>Prompt/Prefix Caching 能成立，位置编码是隐含前提</strong>：固定前缀（系统提示词+工具定义）的 K/V 按各自位置算好缓存后，只要前缀不变，后续请求直接复用、语义完全一致。这就是为什么「把稳定内容放在上下文最前面」是 Agent 提示词工程的第一条军规（第 04、07 章展开）。</p></div>
+</section>
+
+<!-- ================= 03 ================= -->
+<section id="s3">
+  <div class="gnum">03</div>
+  <span class="ovl">第二个问题 · 长度外推</span>
+  <h2>能算出来 ≠ 模型会用：YaRN 与 DCA</h2>
+
+  <h3>3.1 熟悉的影子：分布漂移</h3>
+  <p>只练过百以内加减法的学生拿到百万位的题：题目写得出来，但他不会算。换成后端语言：<span class="hl">生产流量画像和压测时完全不同，容量模型直接失效</span>。训练时所有 head 只见过 0~4K 的相对距离谱，超过之后轻则注意力散焦，重则近处分辨率被破坏、长文准确率骤降。本章标题里的「<strong>长度外推</strong>」指的就是这件事：让模型在训练时没见过的更长文本上，仍然正常工作。</p>
+  <p>所以要把两个问题分开——<strong>面试最爱在这里挖坑</strong>：</p>
+  <table>
+    <tr><th>问题</th><th>谁解决</th><th>注意</th></tr>
+    <tr><td>能不能<strong>表示</strong>远的位置？</td><td>RoPE（已解决）</td><td>—</td></tr>
+    <tr><td>模型能不能<strong>在远处正常工作</strong>？</td><td>YaRN / DCA</td><td>目的是长度外推，<strong>不是降低计算复杂度</strong></td></tr>
+  </table>
+
+  <h3>3.2 YaRN：不同频率区别对待的缩放</h3>
+  <p>朴素做法：把 16K 位置整体压缩进训练过的 4K 区间（线性插值）——把大幅地图缩印塞进旧相框，整体进去了，相邻街道挤成一团。RoPE 各维度频率不同：高频辨近处、低频承远景，<strong>一把尺子统一压缩必然顾此失彼</strong>。YaRN 的思路是分级处理：</p>
+
+  <figure class="fig">
+  <svg viewBox="0 0 900 332" role="img" aria-label="YaRN 分频缩放">
+    <text x="60" y="34" class="dg-h" fill="#B42318">高频维度（辨近距离）→ 尽量少动</text>
+    <rect x="250" y="44" width="610" height="96" fill="#FBF6EA"/>
+    <line x1="60" y1="140" x2="860" y2="140" stroke="#948A79" stroke-width="1.5"/>
+    <line x1="250" y1="44" x2="250" y2="140" stroke="#B42318" stroke-width="1.5" stroke-dasharray="5 4"/>
+    <text x="155" y="158" text-anchor="middle" class="dg-s">← 训练见过 0~4K</text>
+    <text x="555" y="158" text-anchor="middle" class="dg-s">外推区（波形保持原周期 → 近距分辨率保住）→</text>
+    <g id="sineHi"></g>
+    <text x="60" y="204" class="dg-h" fill="#0F766E">低频维度（承远距离）→ 大幅拉伸</text>
+    <rect x="250" y="214" width="610" height="76" fill="#F0F7F4"/>
+    <line x1="60" y1="290" x2="860" y2="290" stroke="#948A79" stroke-width="1.5"/>
+    <line x1="250" y1="214" x2="250" y2="290" stroke="#B42318" stroke-width="1.5" stroke-dasharray="5 4"/>
+    <text x="555" y="308" text-anchor="middle" class="dg-s">外推区波长被拉长 → 承载更远距离（若一刀切压缩，近距细节会糊掉）</text>
+    <g id="sineLo"></g>
+  </svg>
+  <figcaption><b>图 7</b>YaRN / NTK-aware 插值的直觉：RoPE 高频维度像秒针，负责分辨相邻 token，外推时尽量保留原周期；低频维度像时针，负责长距离，可以大幅拉伸。再配合给打分统一乘一个修正系数（行话：对 logits——softmax 之前的原始分数——做温度修正）。类比：分域弹性伸缩，而不是一刀切。</figcaption>
+  </figure>
+
+  <h3>3.3 DCA：分块重组相对位置</h3>
+  <p>DCA（Dual Chunked Attention）是另一条路线，Qwen2.5-1M 用它把推理窗口从训练的 256K 外推到 1M。核心思想：<span class="hl">别让巨大的 i−j 直接进入旋转角度</span>——把长序列切块后重组位置体系，块内保持小距离（模型熟悉），跨块距离用另一维坐标表达，使所有有效距离都落在训练见过的范围内。</p>
+
+  <figure class="fig">
+  <svg viewBox="0 0 900 356" role="img" aria-label="DCA 分块重组">
+    <g font-size="13" text-anchor="middle" font-weight="600">
+      <rect x="50" y="34" width="185" height="40" rx="8" fill="#F0E9D6" stroke="#E0D5BA"/><text x="142" y="59">chunk A</text>
+      <rect x="255" y="34" width="185" height="40" rx="8" fill="#F0E9D6" stroke="#E0D5BA"/><text x="347" y="59">chunk B</text>
+      <rect x="460" y="34" width="185" height="40" rx="8" fill="#F0E9D6" stroke="#E0D5BA"/><text x="552" y="59">chunk C</text>
+      <rect x="665" y="34" width="185" height="40" rx="8" fill="#F0E9D6" stroke="#E0D5BA"/><text x="757" y="59">chunk D</text>
+    </g>
+    <circle cx="92" cy="54" r="7" fill="#047857"/><text x="92" y="26" text-anchor="middle" class="dg-s" fill="#047857" font-weight="700">K</text>
+    <circle cx="736" cy="54" r="7" fill="#1D4ED8"/><text x="736" y="26" text-anchor="middle" class="dg-s" fill="#1D4ED8" font-weight="700">Q</text>
+    <line x1="500" y1="88" x2="268" y2="136" stroke="#B42318" stroke-width="1.8" marker-end="url(#arwR)"/>
+    <line x1="560" y1="88" x2="636" y2="136" stroke="#0F766E" stroke-width="1.8" marker-end="url(#arwT)"/>
+    <rect x="50" y="142" width="380" height="188" rx="12" fill="#FBECEA" stroke="#EFCBC6"/>
+    <text x="240" y="174" text-anchor="middle" font-size="13.5" fill="#B42318" font-weight="700">朴素外推：i − n = 3L + δ（巨大数字）</text>
+    <text x="240" y="200" text-anchor="middle" class="dg-s">直接喂给 RoPE → 超出训练分布</text>
+    <text x="240" y="222" text-anchor="middle" class="dg-s">注意力散焦 / 近处分辨率被破坏</text>
+    <text x="240" y="250" text-anchor="middle" font-size="12.5" fill="#B42318">❌ 长文任务准确率骤降</text>
+    <rect x="470" y="142" width="380" height="188" rx="12" fill="#E7F4F0" stroke="#C4E2DA"/>
+    <text x="660" y="172" text-anchor="middle" font-size="13.5" fill="#0F766E" font-weight="700">DCA：把距离分解成两个小坐标</text>
+    <g>
+      <line x1="530" y1="290" x2="810" y2="290" stroke="#948A79" stroke-width="1.5"/>
+      <line x1="530" y1="290" x2="530" y2="192" stroke="#948A79" stroke-width="1.5"/>
+      <rect x="530" y="218" width="230" height="72" fill="#CDE8E0" opacity=".55"/>
+      <text x="645" y="258" text-anchor="middle" class="dg-s" fill="#0F766E" font-weight="700">训练见过的范围 ✓</text>
+      <circle cx="700" cy="242" r="6" fill="#0F766E"/>
+      <text x="700" y="230" text-anchor="middle" class="dg-s" fill="#0F766E">(块内偏移 δ, 块间偏移)</text>
+      <text x="670" y="308" text-anchor="middle" class="dg-s">块内偏移 δ →</text>
+      <text x="516" y="242" text-anchor="middle" class="dg-s" transform="rotate(-90 516 242)">块间偏移 →</text>
+    </g>
+    <text x="660" y="326" text-anchor="middle" class="dg-s">类比：全局自增 ID 改为「分区号 + 分区内偏移」的复合键</text>
+  </svg>
+  <figcaption><b>图 8</b>DCA 的坐标重组：跨 chunk 的巨大相对距离不再直接进入 RoPE，而是分解为「块内偏移 + 块间偏移」两个分量，各自落在训练见过的范围内。Qwen2.5-1M：渐进继续训练到 256K（学会远距离）→ DCA 外推到 1M（管「会不会读」）→ 稀疏 Attention 降成本（管「读得贵不贵」，见第 04 章）。</figcaption>
+  </figure>
+
+  <div class="co interview"><span class="tag">🎙 面试 30 秒 · 技术口径</span>
+  <p>长度外推要和复杂度优化分开。两条主流路线：YaRN 式缩放——利用 RoPE 高频辨近、低频承远的性质分频处理并修正温度；Qwen2.5-1M 路线——先训练到 256K，推理时用 DCA 把位置体系分块重组，避免训练范围外的巨大相对距离进入 softmax。前者改造「尺度」，后者改造「坐标系」，目的都是让模型在没训过的长度上正常工作。</p></div>
+
+  <div class="co agent"><span class="tag">🔗 Agent 连接点</span>
+  <p>这是 Agent 面试最高频的知识迁移点：<strong>「模型支持 1M 上下文」≠「1M 上下文都好用」</strong>。外推技术解决「模型会读」，但长上下文还有两大独立难题：中间信息容易被忽略（lost in the middle），以及成本随长度上涨（第 04 章）。所以「1M 上下文取代 RAG」是个伪命题——第 07 章给出完整答法。</p></div>
+</section>
+
+<!-- ================= 04 ================= -->
+<section id="s4">
+  <div class="gnum">04</div>
+  <span class="ovl">第三个问题 · 推理成本</span>
+  <h2>KV cache：一条不可变日志的缓存账单</h2>
+
+  <h3>4.1 逐 token 生成的重复计算与缓存机会</h3>
+  <p>模型生成是一步一步来的，如果每步都从头算，生成 1000 个 token 就是 1000 次近似全量重跑。<strong>好消息是历史不会变</strong>——因果遮罩保证了历史 token 的表示永不受未来影响（第 01 章的不可变日志）。所以每层里历史 token 的 K、V 可以<strong>算一次、永久复用</strong>，这就是 KV cache。</p>
+
+  <figure class="fig">
+  <svg viewBox="0 0 900 402" role="img" aria-label="KV cache 复用与显存增长">
+    <g font-size="12.5">
+      <text x="40" y="52" class="dg-s" font-weight="700">第 1 步</text>
+      <rect x="110" y="30" width="42" height="30" rx="6" fill="#F0E9D6" stroke="#E0D5BA"/><text x="131" y="50" text-anchor="middle">今</text>
+      <rect x="160" y="30" width="42" height="30" rx="6" fill="#F0E9D6" stroke="#E0D5BA"/><text x="181" y="50" text-anchor="middle">天</text>
+      <rect x="210" y="30" width="42" height="30" rx="6" fill="#F0E9D6" stroke="#E0D5BA"/><text x="231" y="50" text-anchor="middle">天</text>
+      <rect x="260" y="30" width="42" height="30" rx="6" fill="#F0E9D6" stroke="#E0D5BA"/><text x="281" y="50" text-anchor="middle">气</text>
+      <rect x="316" y="30" width="42" height="30" rx="6" fill="#FBF1DC" stroke="#B45309" stroke-width="1.6"/><text x="337" y="50" text-anchor="middle" fill="#B45309" font-weight="700">很</text>
+      <line x1="372" y1="45" x2="430" y2="45" stroke="#948A79" stroke-width="1.6" marker-end="url(#arw)"/>
+      <text x="440" y="50" class="dg-s">全部现算，K/V 存入 cache</text>
+
+      <text x="40" y="122" class="dg-s" font-weight="700">第 2 步</text>
+      <rect x="110" y="100" width="42" height="30" rx="6" fill="#E5F3EA" stroke="#C4E2DA"/><text x="131" y="120" text-anchor="middle" fill="#047857">今</text>
+      <rect x="160" y="100" width="42" height="30" rx="6" fill="#E5F3EA" stroke="#C4E2DA"/><text x="181" y="120" text-anchor="middle" fill="#047857">天</text>
+      <rect x="210" y="100" width="42" height="30" rx="6" fill="#E5F3EA" stroke="#C4E2DA"/><text x="231" y="120" text-anchor="middle" fill="#047857">天</text>
+      <rect x="260" y="100" width="42" height="30" rx="6" fill="#E5F3EA" stroke="#C4E2DA"/><text x="281" y="120" text-anchor="middle" fill="#047857">气</text>
+      <rect x="310" y="100" width="42" height="30" rx="6" fill="#E5F3EA" stroke="#C4E2DA"/><text x="331" y="120" text-anchor="middle" fill="#047857">很</text>
+      <rect x="366" y="100" width="42" height="30" rx="6" fill="#FBF1DC" stroke="#B45309" stroke-width="1.6"/><text x="387" y="120" text-anchor="middle" fill="#B45309" font-weight="700">好</text>
+      <line x1="422" y1="115" x2="480" y2="115" stroke="#948A79" stroke-width="1.6" marker-end="url(#arw)"/>
+      <text x="490" y="120" class="dg-s" fill="#047857">绿色 = 直接读 cache ✓，只算新 token 的 K/V</text>
+
+      <text x="40" y="192" class="dg-s" font-weight="700">第 3 步</text>
+      <rect x="110" y="170" width="42" height="30" rx="6" fill="#E5F3EA" stroke="#C4E2DA"/><text x="131" y="190" text-anchor="middle" fill="#047857">今</text>
+      <rect x="160" y="170" width="42" height="30" rx="6" fill="#E5F3EA" stroke="#C4E2DA"/><text x="181" y="190" text-anchor="middle" fill="#047857">天</text>
+      <rect x="210" y="170" width="42" height="30" rx="6" fill="#E5F3EA" stroke="#C4E2DA"/><text x="231" y="190" text-anchor="middle" fill="#047857">天</text>
+      <rect x="260" y="170" width="42" height="30" rx="6" fill="#E5F3EA" stroke="#C4E2DA"/><text x="281" y="190" text-anchor="middle" fill="#047857">气</text>
+      <rect x="310" y="170" width="42" height="30" rx="6" fill="#E5F3EA" stroke="#C4E2DA"/><text x="331" y="190" text-anchor="middle" fill="#047857">很</text>
+      <rect x="360" y="170" width="42" height="30" rx="6" fill="#E5F3EA" stroke="#C4E2DA"/><text x="381" y="190" text-anchor="middle" fill="#047857">好</text>
+      <rect x="416" y="170" width="42" height="30" rx="6" fill="#FBF1DC" stroke="#B45309" stroke-width="1.6"/><text x="437" y="190" text-anchor="middle" fill="#B45309" font-weight="700">。</text>
+      <line x1="472" y1="185" x2="530" y2="185" stroke="#948A79" stroke-width="1.6" marker-end="url(#arw)"/>
+      <text x="540" y="190" class="dg-s">cache 只增不减 —— 为什么不缓存 Q？Q 用完即弃，</text>
+      <text x="540" y="208" class="dg-s">历史 K（索引）和历史 V（内容）才需要持久保存</text>
+    </g>
+
+    <text x="60" y="252" class="dg-h">cache 有多大？（Qwen2-7B 类配置：28 层 × 4 KV 头 × 头维 128 × fp16）</text>
+    <text x="60" y="274" font-size="11" fill="#948A79">读法：头维 128 = 每个头向量的长度；fp16 = 16 位浮点数存储，每个数占 2 字节</text>
+    <g>
+      <rect x="110" y="366" width="66" height="7" fill="#C9BFA9"/><text x="143" y="358" text-anchor="middle" class="dg-s">0.45GB</text><text x="143" y="386" text-anchor="middle" class="dg-s">8K 上下文</text>
+      <rect x="246" y="325" width="66" height="48" fill="#D9A648"/><text x="279" y="317" text-anchor="middle" class="dg-s">≈ 7GB</text><text x="279" y="386" text-anchor="middle" class="dg-s">128K</text>
+      <rect x="382" y="253" width="66" height="120" fill="#B45309"/><text x="415" y="245" text-anchor="middle" font-size="12.5" font-weight="800" fill="#B45309">≈ 54GB</text><text x="415" y="386" text-anchor="middle" class="dg-s">1M</text>
+    </g>
+    <text x="60" y="284" font-family="var(--mono)" font-size="12" fill="#7C7466">2(K,V) × 28 × 4 × 128 × 2B ≈ 57 KB/token</text>
+
+    <rect x="540" y="300" width="320" height="40" rx="8" fill="#F0E9D6" stroke="#E0D5BA"/>
+    <text x="700" y="325" text-anchor="middle" class="dg-s">一份 1M 上下文的 KV cache</text>
+    <line x1="540" y1="282" x2="860" y2="282" stroke="#B42318" stroke-width="2.5" marker-end="url(#arwR)"/>
+    <text x="700" y="270" text-anchor="middle" font-size="12" fill="#B42318" font-weight="700">生成每个新 token，都要把它完整读一遍</text>
+    <text x="540" y="368" class="dg-s">→ Decode 瓶颈 = 显存带宽，不是算力</text>
+    <text x="540" y="388" class="dg-s">（类比 N+1 查询：算力闲置，数据搬运打满）</text>
+  </svg>
+  <figcaption><b>图 9</b>上：因果性保证历史 K/V 永不变化，所以可以算一次永久复用；下：cache 体积随上下文线性增长（左，1M 约 54GB/请求），且 Decode 每生成一个 token 都要完整读取一遍（右）——瓶颈在显存带宽，类比 N+1 查询。</figcaption>
+  </figure>
+
+  <h3>4.2 GQA：给 cache 减副本</h3>
+  <p>cache 体积正比于 KV 头数，那就砍头数——只砍 K/V，不动 Q：</p>
+
+  <figure class="fig">
+  <svg viewBox="0 0 900 292" role="img" aria-label="MHA GQA MQA 头共享结构">
+    <g>
+      <text x="170" y="36" text-anchor="middle" class="dg-h">MHA · 32:32</text>
+      <g fill="#1D4ED8"><circle cx="80" cy="90" r="11"/><circle cx="140" cy="90" r="11"/><circle cx="200" cy="90" r="11"/><circle cx="260" cy="90" r="11"/></g>
+      <g font-size="11" fill="#948A79" text-anchor="middle"><text x="80" y="70">Q</text><text x="140" y="70">Q</text><text x="200" y="70">Q</text><text x="260" y="70">Q</text></g>
+      <g><rect x="66" y="200" width="28" height="26" rx="6" fill="#E5F3EA" stroke="#047857"/><rect x="126" y="200" width="28" height="26" rx="6" fill="#E5F3EA" stroke="#047857"/><rect x="186" y="200" width="28" height="26" rx="6" fill="#E5F3EA" stroke="#047857"/><rect x="246" y="200" width="28" height="26" rx="6" fill="#E5F3EA" stroke="#047857"/></g>
+      <g stroke="#948A79" stroke-width="1.4"><line x1="80" y1="101" x2="80" y2="198"/><line x1="140" y1="101" x2="140" y2="198"/><line x1="200" y1="101" x2="200" y2="198"/><line x1="260" y1="101" x2="260" y2="198"/></g>
+      <text x="170" y="258" text-anchor="middle" class="dg-s">每人一套独享库</text>
+    </g>
+    <g>
+      <text x="450" y="36" text-anchor="middle" class="dg-h" fill="#0F766E">GQA · 32:8 ✓</text>
+      <g fill="#1D4ED8"><circle cx="360" cy="90" r="11"/><circle cx="420" cy="90" r="11"/><circle cx="480" cy="90" r="11"/><circle cx="540" cy="90" r="11"/></g>
+      <g font-size="11" fill="#948A79" text-anchor="middle"><text x="360" y="70">Q</text><text x="420" y="70">Q</text><text x="480" y="70">Q</text><text x="540" y="70">Q</text></g>
+      <g><rect x="366" y="200" width="28" height="26" rx="6" fill="#E5F3EA" stroke="#047857" stroke-width="1.8"/><rect x="486" y="200" width="28" height="26" rx="6" fill="#E5F3EA" stroke="#047857" stroke-width="1.8"/></g>
+      <g stroke="#0F766E" stroke-width="1.5"><line x1="360" y1="101" x2="376" y2="198"/><line x1="420" y1="101" x2="386" y2="198"/><line x1="480" y1="101" x2="496" y2="198"/><line x1="540" y1="101" x2="506" y2="198"/></g>
+      <text x="450" y="258" text-anchor="middle" class="dg-s" fill="#0F766E">分组共享（读写分离分组）</text>
+    </g>
+    <g>
+      <text x="730" y="36" text-anchor="middle" class="dg-h">MQA · 32:1</text>
+      <g fill="#1D4ED8"><circle cx="640" cy="90" r="11"/><circle cx="700" cy="90" r="11"/><circle cx="760" cy="90" r="11"/><circle cx="820" cy="90" r="11"/></g>
+      <g font-size="11" fill="#948A79" text-anchor="middle"><text x="640" y="70">Q</text><text x="700" y="70">Q</text><text x="760" y="70">Q</text><text x="820" y="70">Q</text></g>
+      <rect x="716" y="200" width="28" height="26" rx="6" fill="#E5F3EA" stroke="#047857"/>
+      <g stroke="#948A79" stroke-width="1.4"><line x1="640" y1="101" x2="722" y2="198"/><line x1="700" y1="101" x2="727" y2="198"/><line x1="760" y1="101" x2="733" y2="198"/><line x1="820" y1="101" x2="738" y2="198"/></g>
+      <text x="730" y="258" text-anchor="middle" class="dg-s">全部挤一个库（省过头，效果受损）</text>
+    </g>
+    <text x="450" y="284" text-anchor="middle" font-size="12" fill="#B45309" font-weight="600">KV 份数 = cache 体积与带宽：32→8 即缩到 1/4。但 token 两两打分一次没少 —— GQA 不改变 Prefill 的 N²</text>
+  </svg>
+  <figcaption><b>图 10</b>MHA / GQA / MQA：Q 头不动，K/V 头从人手一套 → 分组共享 → 全局一份。GQA 是工业界折中的标准答案（类比读写分离的副本分组）。落地节奏：Qwen1.5 大尺寸引入，Qwen2 起推广到全系列（具体以官方 config 为准）。</figcaption>
+  </figure>
+
+  <h3>4.3 真正省计算量（FLOPs）：稀疏 Attention</h3>
+  <p>实测规律：长文本里 attention 高度稀疏——大部分头只看邻近 token（对角线）、或某一列（如句首）、或少数块状区域。只算可能重要的块即可（MInference 是代表工作）。</p>
+  <div class="co pit"><span class="tag">⚠ 容易踩的坑 · 面试高分点</span>
+  <p><strong>「看似稀疏」≠「真稀疏」</strong>：如果先把完整矩阵算完、再用 mask 盖掉一部分，计算量一次都没省（FLOPs = 浮点运算次数，衡量「一共做了多少次算术」的单位）——就像 SQL 写了 WHERE 但没走索引，照样全表扫。真正的稀疏必须<strong>在 kernel 执行前决定跳过哪些块</strong>（kernel：GPU 上跑的底层计算程序，先理解成「真正干活的那段代码」）。配套手段 chunked prefill（超长 prompt 分批送入）则负责压平中间激活的显存峰值。</p></div>
+  <p>再补一个阶段划分：模型收到请求后有两个阶段——<strong>Prefill</strong>（先把整个 prompt——即你发给模型的全部输入文本——并行处理一遍，像批处理任务，吃算力）和 <strong>Decode</strong>（之后逐 token 生成答案，像 N+1 场景，吃带宽）。两者瓶颈不同，所以 Qwen2.5-1M 的组合拳是「稀疏 Attention（救 Prefill）+ GQA（救 Decode）」，不可互相替代。</p>
+
+  <div class="co interview"><span class="tag">🎙 面试 30 秒 · 技术口径</span>
+  <p>生成是逐 token 循环；因果性保证历史 K/V 不变所以可缓存。KV cache 让每步免于全量重算，但显存随长度线性增长（57KB/token 量级，1M≈54GB），且 Decode 每步要完整读取一遍，瓶颈在显存带宽。三板斧各管一层：GQA 减 KV 份数（省搬运不省 FLOPs）；稀疏 Attention 在 kernel 前跳块（真省 FLOPs，救 Prefill）；chunked prefill 平滑显存峰值。</p></div>
+
+  <div class="co agent"><span class="tag">🔗 Agent 连接点</span>
+  <p>这一章是 Agent 成本优化的理论根基，直接对应三件你天天在做的事：<strong>①</strong> Agent 多轮对话每轮都把更长的历史重新 prefill → 响应越来越慢，除非命中<strong>前缀缓存</strong>；<strong>②</strong> 系统提示词+工具定义几乎不变——把它们放最前且保持字节级稳定，前缀 KV 就能跨请求复用，TTFT 大幅下降；<strong>③</strong> 工具返回的大段 JSON 塞进上下文 = 每一轮都在为它付 KV 读取的钱——工具结果该截断就截断。</p></div>
+</section>
+
+<!-- ================= 05 ================= -->
+<section id="s5">
+  <div class="gnum">05</div>
+  <span class="ovl">第四个问题 · 训练稳定性</span>
+  <h2>模型越大，打分越容易失控</h2>
+
+  <div class="co agent"><span class="tag">📖 先补两个词：训练 / 梯度（本章的主角）</span>
+  <p><strong>训练</strong>：拿海量文本反复让模型做「预测下一个 token」的填空题，每次答错就微调它内部的数字（参数）。<strong>梯度</strong>：批改后发给每个参数的整改单——「你往这边调多少，错误会变小」。训练崩溃最常见的形态，就是整改单本身出了问题（数值爆炸或归零），整个模型随之失灵。</p></div>
+
+  <p>这个问题在推理侧看不见，却能把几百张显卡的训练任务整个带崩。Attention 的打分是点积：模型变大后，某些头的 Q/K <strong>数值越滚越大</strong>，点积可以非常大，经 Softmax 后分布退化成<strong>近乎 one-hot</strong>（one-hot = 只剩一个 1、其余全是 0，也就是「全押一个选项」）——类比负载均衡彻底失效，全部流量倾斜到一台服务器；后果是整改信号失真、错误上下乱跳，甚至算出 NaN（Not a Number，数值溢出后的错误值）。<code>/√d</code> 只防住了「项数多导致的自然变大」，防不住训练过程本身把数值越推越大。</p>
+
+  <figure class="fig">
+  <svg viewBox="0 0 900 274" role="img" aria-label="softmax 尖锐化对比">
+    <rect x="50" y="26" width="380" height="200" rx="14" fill="#FFFDF8" stroke="#EFCBC6"/>
+    <text x="240" y="56" text-anchor="middle" class="dg-h" fill="#B42318">失控：logits 膨胀 → 几乎 one-hot</text>
+    <line x1="90" y1="210" x2="390" y2="210" stroke="#948A79" stroke-width="1.5"/>
+    <g id="softmaxBefore" transform="translate(107,100)"></g>
+    <text x="240" y="236" text-anchor="middle" class="dg-s">一个位置吸走 86% 权重 —— 流量全倾斜单点，其余梯度趋零</text>
+    <rect x="470" y="26" width="380" height="200" rx="14" fill="#FFFDF8" stroke="#C4E2DA"/>
+    <text x="660" y="56" text-anchor="middle" class="dg-h" fill="#047857">受控：QK-Norm 拉回尺度 → 权重均衡</text>
+    <line x1="510" y1="210" x2="810" y2="210" stroke="#948A79" stroke-width="1.5"/>
+    <g id="softmaxAfter" transform="translate(527,100)"></g>
+    <text x="660" y="236" text-anchor="middle" class="dg-s">打分被归一化限制 —— 多路径并存，梯度健康</text>
+  </svg>
+  <figcaption><b>图 11</b>同一个 softmax，打分尺度不同时的形态：失控时分布尖锐如单点独热（左），QK-Norm 把 Q、K 各自归一化后分布恢复多峰（右）。解法逐代加强：√d 温度 → QKV-bias（Qwen2）→ QK-Norm（Qwen3）→ 零中心 RMSNorm + weight decay（Qwen3-Next，官方披露 norm 权重仍会异常膨胀）；另加输出门控抑制无效 head、消除 attention sink。</figcaption>
+  </figure>
+
+  <div class="co interview"><span class="tag">🎙 面试 30 秒 · 技术口径</span>
+  <p>规模变大后 Q·K 点积膨胀使 softmax 退成单点独热（全押一个选项），整改信号失真，训练震荡发散。解法逐代加强：√d 除数和 QKV-bias → Qwen3 的 QK-Norm 直接归一化 Q、K → Qwen3-Next 的零中心 RMSNorm（把数值拉回 0 附近）加 weight decay（约束参数「别长太大」），并用输出门控消除 attention sink（注意力长期倾泻在句首某 token 上的病态模式）。核心思想一致：限制打分尺度的自由度，换取大规模训练稳定。</p></div>
+
+  <div class="co agent"><span class="tag">🔗 Agent 连接点</span>
+  <p>面试里这章的用法是「选型判断」：知道某代模型用了 QK-Norm / 零中心 norm，意味着它<strong>在大规模、长序列训练上更稳</strong>——而 Agent 的长程多轮任务正是模型训练分布里最苛刻的部分。被问「为什么新模型跑长任务更稳」，你能从打分尺度失控一路讲到训练稳定性，这已经超过大多数候选人。</p></div>
+</section>
+
+<!-- ================= 06 ================= -->
+<section id="s6">
+  <div class="gnum">06</div>
+  <span class="ovl">换一种记忆方式</span>
+  <h2>线性注意力与混合架构：从明细表到物化视图</h2>
+
+  <h3>6.1 标准 Attention 的两个原罪</h3>
+  <p>数一数固有开销：<strong>① 状态大小随长度 N 正比增长</strong>——KV cache 随上下文线性增长（第 04 章的账单）；<strong>② 计算量随 N 平方增长</strong>（长度翻 10 倍、计算量翻 100 倍）——Prefill 要两两打分（百万 token 单头单层约 5×10¹¹ 对）。有没有办法让记忆总量<strong>恒定</strong>？有——放弃保存全部明细，改存聚合摘要（数据库行话：用「物化视图」——提前算好、存起来的汇总表——代替明细表）。</p>
+
+  <h3>6.2 线性注意力：UPSERT + 遗忘的固定状态</h3>
+  <p>维护一个固定大小的状态矩阵 S，每读入一个 token 就对 S 做一次<strong>大小固定、不随历史增长</strong>的更新；查询时直接与 S 交互，不再遍历历史。两个关键机制：</p>
+  <ul style="margin:12px 0 12px 24px;color:#443D31">
+    <li style="margin:8px 0"><strong>Delta rule（UPSERT 语义；UPSERT = 有则更新、无则插入）</strong>：新事实与已有记忆冲突时，<em>修正</em>而非叠加。先读「小明拿着钥匙」再读「钥匙交给小红」→ 持有者字段从小明更新为小红，而不是两个人并存。无脑累加只会堆积矛盾记忆。</li>
+    <li style="margin:8px 0"><strong>Gate（遗忘门）</strong>：类似 TTL（过期时间）/衰减因子，控制哪些旧信息保留、哪些被冲淡。</li>
+  </ul>
+
+  <figure class="fig">
+  <svg viewBox="0 0 900 318" role="img" aria-label="明细表 vs 固定状态">
+    <rect x="46" y="26" width="386" height="236" rx="14" fill="#FFFDF8" stroke="#E5DCCB"/>
+    <text x="239" y="56" text-anchor="middle" class="dg-h" fill="#1D4ED8">标准 Attention：保留全部明细</text>
+    <g font-size="11.5" font-family="var(--mono)" fill="#7C7466">
+      <rect x="86" y="74" width="200" height="24" rx="5" fill="#F0E9D6" stroke="#E0D5BA"/><text x="96" y="90">token₁ 的 K,V</text>
+      <rect x="86" y="104" width="200" height="24" rx="5" fill="#F0E9D6" stroke="#E0D5BA"/><text x="96" y="120">token₂ 的 K,V</text>
+      <rect x="86" y="134" width="200" height="24" rx="5" fill="#F0E9D6" stroke="#E0D5BA"/><text x="96" y="150">token₃ 的 K,V</text>
+      <text x="186" y="176" text-anchor="middle" class="dg-s">…… 随 N 无限增长</text>
+      <rect x="86" y="188" width="200" height="24" rx="5" fill="#F0E9D6" stroke="#E0D5BA"/><text x="96" y="204">token_N 的 K,V</text>
+    </g>
+    <line x1="300" y1="150" x2="300" y2="238" stroke="#948A79" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#arw)"/>
+    <text x="239" y="254" text-anchor="middle" class="dg-s">想查哪条查哪条（精确回查）· 存储越存越多</text>
+
+    <rect x="468" y="26" width="386" height="236" rx="14" fill="#FFFDF8" stroke="#E5DCCB"/>
+    <text x="661" y="56" text-anchor="middle" class="dg-h" fill="#6D28D9">线性注意力：固定大小状态 S</text>
+    <g fill="#F0EAFB" stroke="#C9B8EE">
+      <rect x="590" y="82" width="36" height="36" rx="5"/><rect x="632" y="82" width="36" height="36" rx="5"/><rect x="674" y="82" width="36" height="36" rx="5"/><rect x="716" y="82" width="36" height="36" rx="5"/>
+      <rect x="590" y="124" width="36" height="36" rx="5"/><rect x="632" y="124" width="36" height="36" rx="5"/><rect x="674" y="124" width="36" height="36" rx="5"/><rect x="716" y="124" width="36" height="36" rx="5"/>
+      <rect x="590" y="166" width="36" height="36" rx="5"/><rect x="632" y="166" width="36" height="36" rx="5"/><rect x="674" y="166" width="36" height="36" rx="5"/><rect x="716" y="166" width="36" height="36" rx="5"/>
+    </g>
+    <text x="560" y="144" text-anchor="end" class="dg-s">信息流 →</text>
+    <text x="671" y="226" text-anchor="middle" class="dg-s">UPSERT（delta rule）+ 门控衰减（gate）</text>
+    <text x="671" y="254" text-anchor="middle" class="dg-s">内存恒定 O(1) · 查询直接命中状态</text>
+    <rect x="120" y="276" width="270" height="34" rx="8" fill="#E8EEFB" stroke="#C3D2F2"/>
+    <text x="255" y="298" text-anchor="middle" class="dg-s">像 MySQL 明细表：无损但贵</text>
+    <rect x="510" y="276" width="300" height="34" rx="8" fill="#FBF1DC" stroke="#EBD9B4"/>
+    <text x="660" y="298" text-anchor="middle" class="dg-s" fill="#B45309">像聚合物化视图：省钱，但无法无损还原 ⚠</text>
+  </svg>
+  <figcaption><b>图 12</b>两种记忆范式的对照：标准 Attention 保存全部明细（KV cache，可精确回查、体积无限增长）；线性注意力把历史压缩进固定状态（delta rule 做 UPSERT 修正、gate 做衰减），恒定内存但无法无损还原任意明细——精确召回成为短板。</figcaption>
+  </figure>
+
+  <h3>6.3 Qwen3-Next 的答案：3:1 分层混搭</h3>
+
+  <figure class="fig">
+  <svg viewBox="0 0 900 352" role="img" aria-label="3:1 混合架构">
+    <text x="140" y="34" text-anchor="middle" class="dg-h">48 层 · 3:1 重复</text>
+    <g font-size="11" text-anchor="middle" font-weight="600">
+      <rect x="85" y="46" width="110" height="30" rx="7" fill="#F0EAFB" stroke="#C9B8EE"/><text x="140" y="66" fill="#6D28D9">DeltaNet</text>
+      <rect x="85" y="82" width="110" height="30" rx="7" fill="#F0EAFB" stroke="#C9B8EE"/><text x="140" y="102" fill="#6D28D9">DeltaNet</text>
+      <rect x="85" y="118" width="110" height="30" rx="7" fill="#F0EAFB" stroke="#C9B8EE"/><text x="140" y="138" fill="#6D28D9">DeltaNet</text>
+      <rect x="85" y="154" width="110" height="30" rx="7" fill="#E8EEFB" stroke="#1D4ED8"/><text x="140" y="174" fill="#1D4ED8">Full Attn</text>
+      <text x="140" y="207" text-anchor="middle" class="dg-s">……</text>
+      <rect x="85" y="216" width="110" height="30" rx="7" fill="#F0EAFB" stroke="#C9B8EE"/><text x="140" y="236" fill="#6D28D9">DeltaNet</text>
+      <rect x="85" y="252" width="110" height="30" rx="7" fill="#F0EAFB" stroke="#C9B8EE"/><text x="140" y="272" fill="#6D28D9">DeltaNet</text>
+      <rect x="85" y="288" width="110" height="30" rx="7" fill="#F0EAFB" stroke="#C9B8EE"/><text x="140" y="308" fill="#6D28D9">DeltaNet</text>
+      <rect x="85" y="324" width="110" height="24" rx="7" fill="#E8EEFB" stroke="#1D4ED8"/><text x="140" y="340" fill="#1D4ED8">Full Attn</text>
+    </g>
+    <path d="M 210 61 L 222 61 L 222 169 L 210 169" stroke="#6D28D9" stroke-width="1.4" fill="none"/>
+    <text x="234" y="118" font-size="12" fill="#6D28D9" font-weight="700">×12 组 = 48 层</text>
+    <rect x="320" y="52" width="540" height="94" rx="12" fill="#F0EAFB" stroke="#C9B8EE"/>
+    <text x="590" y="84" text-anchor="middle" class="dg-h" fill="#6D28D9">Gated DeltaNet × 75% —— 高效维护压缩记忆</text>
+    <text x="590" y="110" text-anchor="middle" class="dg-s">固定状态 + UPSERT + 遗忘门 · 长序列成本低</text>
+    <text x="590" y="132" text-anchor="middle" class="dg-s">类比：日常工作靠摘要、报表和知识库</text>
+    <rect x="320" y="166" width="540" height="94" rx="12" fill="#E8EEFB" stroke="#C3D2F2"/>
+    <text x="590" y="198" text-anchor="middle" class="dg-h" fill="#1D4ED8">全注意力 + 输出门控 × 25% —— 精确召回</text>
+    <text x="590" y="224" text-anchor="middle" class="dg-s">完整 KV · 精确检索历史 token、工具参数、代码原文</text>
+    <text x="590" y="246" text-anchor="middle" class="dg-s">类比：关键证据回源档案室查原件</text>
+    <rect x="320" y="280" width="540" height="52" rx="10" fill="#FBF1DC" stroke="#EBD9B4"/>
+    <text x="590" y="302" text-anchor="middle" font-size="12.5" fill="#B45309" font-weight="600">配套精修：头维 128→256 · RoPE 只施加于前 25% 头维 · 零中心 RMSNorm</text>
+    <text x="590" y="322" text-anchor="middle" class="dg-s">「线性」指避免全量 Q-K 关系；实际耗时还取决于 kernel（底层计算程序）等工程因素</text>
+  </svg>
+  <figcaption><b>图 13</b>Qwen3-Next-80B-A3B 的 3:1 混合：每 3 层 Gated DeltaNet 配 1 层全注意力，效率与精度按层分工。Qwen3.5 延续同一主干并叠加更高稀疏度 MoE 与 Multi-Token Prediction；Kimi Linear 等也采用相近配方——行业在「注意力不再铁板一块」上达成共识。</figcaption>
+  </figure>
+
+  <div class="co interview"><span class="tag">🎙 面试 30 秒 · 技术口径</span>
+  <p>标准 attention 有两个固有开销：状态随 N 线性增长的 KV cache 和 N² 打分。线性注意力把历史压缩进固定状态（delta rule 做 UPSERT、gate 做衰减），代价是无法无损保存明细、精确召回变弱。Qwen3-Next 按 3:1 混合：多数层用 Gated DeltaNet 维护高效摘要，少数层保留全注意力负责精确检索，外加输出门控与部分维度 RoPE。一句话：效率和精度按层分工，不整模二选一。</p></div>
+
+  <div class="co agent"><span class="tag">🔗 Agent 连接点</span>
+  <p>Agent 是「精确召回」需求最重的负载：复制上一次工具调用的参数、引用第 3 轮的 API 约定、对历史代码做精确 diff——这些任务撞上「只有压缩记忆」的模型就会出错。面试被问「Agent 对模型架构有什么要求」，你可以答：<strong>需要无损的精确召回通道</strong>，这正是混合架构保留 25% 全注意力层的原因；同时线性层把长 run 的上下文成本打下来，两件事在架构层面就被安排好了。</p></div>
+</section>
+
+<!-- ================= 07 ================= -->
+<section id="s7">
+  <div class="gnum">07</div>
+  <span class="ovl">实战 · 答题骨架</span>
+  <h2>Agent 面试七问：把原理换成答案</h2>
+
+  <p>下面七道题是 Agent 开发面试中出现频率最高、又最能用前六章原理解答的问题。每题给「面试官在考什么」和「答题骨架」——骨架建议背下来，展开时往原理上靠。</p>
+
+  <figure class="fig">
+  <svg viewBox="0 0 900 332" role="img" aria-label="Agent 上下文膨胀与前缀缓存">
+    <g font-size="11.5">
+      <text x="34" y="78" class="dg-s" font-weight="700">第 1 轮</text>
+      <rect x="92" y="52" width="130" height="34" rx="6" fill="#E7F4F0" stroke="#0F766E"/><text x="157" y="74" text-anchor="middle" fill="#0F766E" font-weight="600">系统提示词</text>
+      <rect x="226" y="52" width="120" height="34" rx="6" fill="#E7F4F0" stroke="#0F766E"/><text x="286" y="74" text-anchor="middle" fill="#0F766E" font-weight="600">工具定义</text>
+      <rect x="350" y="52" width="96" height="34" rx="6" fill="#F0E9D6" stroke="#E0D5BA"/><text x="398" y="74" text-anchor="middle">用户问题</text>
+      <text x="34" y="158" class="dg-s" font-weight="700">第 2 轮</text>
+      <rect x="92" y="132" width="130" height="34" rx="6" fill="#E7F4F0" stroke="#0F766E"/><text x="157" y="154" text-anchor="middle" fill="#0F766E" font-weight="600">系统提示词</text>
+      <rect x="226" y="132" width="120" height="34" rx="6" fill="#E7F4F0" stroke="#0F766E"/><text x="286" y="154" text-anchor="middle" fill="#0F766E" font-weight="600">工具定义</text>
+      <rect x="350" y="132" width="96" height="34" rx="6" fill="#F0E9D6" stroke="#E0D5BA"/><text x="398" y="154" text-anchor="middle">用户问题</text>
+      <rect x="450" y="132" width="88" height="34" rx="6" fill="#FBF1DC" stroke="#EBD9B4"/><text x="494" y="154" text-anchor="middle" fill="#B45309">助手回复</text>
+      <rect x="542" y="132" width="120" height="34" rx="6" fill="#FBF1DC" stroke="#EBD9B4"/><text x="602" y="154" text-anchor="middle" fill="#B45309">工具调用+结果</text>
+      <text x="34" y="238" class="dg-s" font-weight="700">第 3 轮</text>
+      <rect x="92" y="212" width="130" height="34" rx="6" fill="#E7F4F0" stroke="#0F766E"/><text x="157" y="234" text-anchor="middle" fill="#0F766E" font-weight="600">系统提示词</text>
+      <rect x="226" y="212" width="120" height="34" rx="6" fill="#E7F4F0" stroke="#0F766E"/><text x="286" y="234" text-anchor="middle" fill="#0F766E" font-weight="600">工具定义</text>
+      <rect x="350" y="212" width="96" height="34" rx="6" fill="#F0E9D6" stroke="#E0D5BA"/><text x="398" y="234" text-anchor="middle">用户问题</text>
+      <rect x="450" y="212" width="88" height="34" rx="6" fill="#FBF1DC" stroke="#EBD9B4"/><text x="494" y="234" text-anchor="middle" fill="#B45309">助手回复</text>
+      <rect x="542" y="212" width="120" height="34" rx="6" fill="#FBF1DC" stroke="#EBD9B4"/><text x="602" y="234" text-anchor="middle" fill="#B45309">工具调用+结果</text>
+      <rect x="666" y="212" width="88" height="34" rx="6" fill="#FBF1DC" stroke="#EBD9B4"/><text x="710" y="234" text-anchor="middle" fill="#B45309">第 3 轮新增</text>
+    </g>
+    <path d="M 92 300 L 92 286 L 446 286 L 446 300" stroke="#047857" stroke-width="2" fill="none"/>
+    <text x="269" y="318" text-anchor="middle" font-size="12" fill="#047857" font-weight="700">稳定前缀：字节级不变 → 跨轮、跨请求命中 KV 缓存 ✓</text>
+    <line x1="620" y1="258" x2="710" y2="258" stroke="#B45309" stroke-width="2" marker-end="url(#arwA)"/>
+    <text x="665" y="278" text-anchor="middle" font-size="11.5" fill="#B45309">每轮尾部新增 → 增量 prefill</text>
+  </svg>
+  <figcaption><b>图 14</b>Agent 循环的上下文结构：稳定前缀（系统提示词+工具定义）+ 每轮增长的尾部（对话与工具轨迹）。前缀字节级稳定 → KV 可复用（TTFT↓、成本↓）；尾部每轮触发增量计算。这张图是第 07 章所有答题的地基。</figcaption>
+  </figure>
+
+  <div class="qcard">
+    <div class="q"><span class="qb">Q1</span><h4>你的 Agent 跑着跑着上下文爆了 / 效果下降，怎么办？</h4></div>
+    <p class="aim">面试官在考：<b>Context Engineering 的分层策略，以及你是否知道每层的代价</b></p>
+    <ul>
+      <li><strong>先量化</strong>：审计 token 构成——系统提示词 / 工具 Schema / 历史 / 工具返回各占多少，再对症下药；</li>
+      <li><strong>截断</strong>：滑动窗口只保留近 N 轮，最便宜，但丢早期约定（长程任务慎用）；</li>
+      <li><strong>压缩</strong>：把旧轮次摘要成 memory note 再丢弃原文——本质是用「聚合视图」换「明细」（第 06 章原理的应用层翻版），丢细节风险同源；</li>
+      <li><strong>外置</strong>：工具结果、大文件落库，需要时检索回来——把「精确召回」交给 RAG 而不是上下文；</li>
+      <li><strong>换长上下文模型</strong>：可行但记住第 03/04 章——外推≠好用，且每轮成本随长度涨。</li>
+    </ul>
+    <p class="plus"><b>加分点</b>：指出这套权衡和模型架构层的权衡同构——全注意力（存明细）vs 线性注意力（存摘要）vs 检索（外置存储），Agent 应用层只是把同样的选择题再做一遍。</p>
+  </div>
+
+  <div class="qcard">
+    <div class="q"><span class="qb">Q2</span><h4>模型都有 1M 上下文了，还需要 RAG 吗？</h4></div>
+    <p class="aim">面试官在考：<b>是否理解「外推成功」与「长上下文好用」是两回事</b></p>
+    <ul>
+      <li><strong>会读 ≠ 读得好</strong>：DCA/YaRN 解决「训练窗口外正常工作」，但 lost in the middle、多跳组合检索的精度仍随长度衰减；</li>
+      <li><strong>读得起吗</strong>：KV 显存与 prefill 延迟随长度增长（第 04 章账单：1M≈54GB/请求），RAG 只送相关片段，天然便宜；</li>
+      <li><strong>管得了吗</strong>：知识库需要更新、鉴权、审计——塞进上下文就失去了数据治理；</li>
+      <li><strong>结论</strong>：互补而非替代。一次性深度阅读（整库代码理解、长文档审阅）用长上下文；大规模、需检索、需治理的知识用 RAG；生产系统通常是「RAG 粗筛 + 长上下文精读」的混合。</li>
+    </ul>
+    <p class="plus"><b>加分点</b>：主动提大海捞针（NIAH）测试的局限——单针能捞对，不代表多跳、抗干扰的真实负载能做好（详见 Q7）。</p>
+  </div>
+
+  <div class="qcard">
+    <div class="q"><span class="qb">Q3</span><h4>Agent 多轮之后响应越来越慢、越来越贵，为什么？怎么优化？</h4></div>
+    <p class="aim">面试官在考：<b>Prefill/Decode 成本模型是否装在心里</b></p>
+    <ul>
+      <li><strong>慢的根源</strong>：每轮都要对「全量历史」做 prefill（两两打分，随长度超线性涨）；Decode 每生成一个 token 要完整读一遍 KV cache（带宽瓶颈，N+1 类比）；</li>
+      <li><strong>优化一 · 前缀缓存</strong>：稳定前缀跨轮复用 KV（图 14），TTFT 大幅下降；</li>
+      <li><strong>优化二 · 控制尾部</strong>：工具结果截断、历史压缩/裁剪（Q1 策略）；</li>
+      <li><strong>优化三 · 选对架构</strong>：混合线性注意力的模型（Qwen3-Next 系）长上下文单价更低；MoE（专家混合：内部有很多「专家」子网络，每个 token 只调用其中少数几个）让激活参数（真正参与计算的参数量）小、吞吐高；投机解码/MTP（先一口气猜几个 token、再批量校验，错了才回滚）提升生成速度。</li>
+    </ul>
+    <p class="plus"><b>加分点</b>：把「慢」拆成 TTFT（首字延迟，prefill 决定）和 TPOT（每个字的生成时间，即吐字速度，decode 决定）分别归因，再分别给方案——这是后端工程师做延迟归因的直觉迁移，面试官会眼前一亮。</p>
+  </div>
+
+  <div class="qcard">
+    <div class="q"><span class="qb">Q4</span><h4>为什么系统提示词和工具定义要放在最前面、且保持字节级稳定？</h4></div>
+    <p class="aim">面试官在考：<b>Prefix Caching 的原理级理解</b></p>
+    <ul>
+      <li>KV cache 按<strong>位置</strong>复用：前缀完全一致 → 这部分 K/V 直接复用，只有尾部增量计算；</li>
+      <li>前缀哪怕改一个标点，从改动处往后的 KV 全部失效——所以易变内容（时间戳、随机 ID）绝不能插在最前面；</li>
+      <li>推论：<strong>稳定内容前置、动态内容靠后</strong>；多 Agent 共享同一系统提示词时收益最大。</li>
+    </ul>
+    <p class="plus"><b>加分点</b>：能连回第 02 章——位置编码的确定性（同位置同旋转）是「同前缀同 KV」成立的前提。</p>
+  </div>
+
+  <div class="qcard">
+    <div class="q"><span class="qb">Q5</span><h4>模型的「记忆」分几种？Agent 分别怎么用？</h4></div>
+    <p class="aim">面试官在考：<b>记忆分层与各自的工程边界</b></p>
+    <ul>
+      <li><strong>参数记忆</strong>：训练时写进权重，容量大但不可更新、不可删除；</li>
+      <li><strong>上下文记忆</strong>：Attention 直接可达，精确但贵（第 04 章）且受窗口限制；内部又分两档——全注意力层的「无损明细」与线性层的「压缩摘要」（第 06 章）；</li>
+      <li><strong>外置记忆</strong>：RAG / DB / 文件系统，可更新、可鉴权、可审计，但依赖检索质量。</li>
+    </ul>
+    <p class="plus"><b>加分点</b>：指出 Agent 的 memory 系统（摘要、向量库、知识图谱）本质是在应用层重演模型架构层的记忆权衡——「什么放明细、什么做摘要、什么外置」。</p>
+  </div>
+
+  <div class="qcard">
+    <div class="q"><span class="qb">Q6</span><h4>给 Agent 选底座模型，你会看什么指标？</h4></div>
+    <p class="aim">面试官在考：<b>是否把模型特性翻译成 Agent 场景的工程指标</b></p>
+    <ul>
+      <li><strong>真实可用上下文</strong>：以 NIAH/多跳实测为准，不看标称（Q7）；</li>
+      <li><strong>成本结构</strong>：MoE 总参/激活参数比（如 80B 总参、A3B 激活：每个 token 只用约 3B 参数 → 吞吐高、单价低）、缓存命中计价；</li>
+      <li><strong>长 run 稳定性</strong>：训练稳定性技术（QK-Norm 等）是间接信号；超长任务看是否出现行为劣化；</li>
+      <li><strong>吞吐技术</strong>：是否支持投机解码/MTP（影响 TPOT）；</li>
+      <li><strong>Agent 基本功</strong>：工具调用格式遵循、多工具并行、指令漂移抵抗。</li>
+    </ul>
+    <p class="plus"><b>加分点</b>：说出「混合线性架构的模型长上下文单价低，但要验证精确召回场景（参数复制、代码 diff）」——一句话同时展示架构理解和场景意识。</p>
+  </div>
+
+  <div class="qcard">
+    <div class="q"><span class="qb">Q7</span><h4>什么是大海捞针测试？为什么 Agent 真实负载比它更难？</h4></div>
+    <p class="aim">面试官在考：<b>对长上下文评测的理解深度</b></p>
+    <ul>
+      <li><strong>NIAH</strong>：在超长文本中埋一句事实（如「密码是XX」），测试模型能否在任意深度召回——考察的就是第 03 章「外推后还能正常工作」；</li>
+      <li><strong>真实负载更难的四点</strong>：①多跳——答案要组合分散在两处的信息；②干扰——几十个工具返回全是相似噪声；③位置偏置——lost in the middle，中部信息最容易被忽略；④精确复制——工具参数、代码片段必须逐字正确，对应「精确召回」能力；</li>
+      <li><strong>结论</strong>：NIAH 通过是必要条件而非充分条件；评测 Agent 应构造多跳+干扰的负载。</li>
+    </ul>
+    <p class="plus"><b>加分点</b>：把④连回第 06 章——这正是混合架构保留全注意力层的原因，评测和架构在设计上是对偶的。</p>
+  </div>
+</section>
+
+<!-- ================= 08 ================= -->
+<section id="s8">
+  <div class="gnum">08</div>
+  <span class="ovl">收束 · 可背版本</span>
+  <h2>总表与 90 秒电梯稿</h2>
+
+  <table>
+    <tr><th>版本</th><th>关键动作</th><th>解决的问题</th><th>Agent 场景关联</th></tr>
+    <tr><td>Qwen1</td><td>causal MHA + RoPE</td><td>内容检索 + 相对位置表示</td><td>一切的地基</td></tr>
+    <tr><td>Qwen1.5→2</td><td>引入并推广 GQA</td><td>KV cache 体积、Decode 带宽</td><td>多轮对话成本（不改变 N²）</td></tr>
+    <tr><td>Qwen2 长文系</td><td>YaRN 等外推</td><td>训练窗口外正常工作</td><td>「1M 标称」的水分鉴别</td></tr>
+    <tr><td>Qwen2.5-1M</td><td>256K 继续训练 + DCA；MInference 稀疏 + chunked prefill</td><td>会读（DCA）+ 读得起（稀疏）</td><td>长文档 Agent 的可行性依据</td></tr>
+    <tr><td>Qwen3</td><td>QK-Norm 替代 QKV-bias</td><td>大规模训练稳定</td><td>长程任务稳定性的选型信号</td></tr>
+    <tr><td>Qwen3-Next</td><td>3:1 混合（DeltaNet+全注意力）；零中心 RMSNorm；输出门控；部分 RoPE</td><td>效率与精确召回兼得</td><td>长 run 成本与精确召回的平衡</td></tr>
+    <tr><td>Qwen3.5</td><td>延续混合 + 高稀疏 MoE + MTP</td><td>吞吐与智能平衡</td><td>Agent 高并发服务的底座候选</td></tr>
+  </table>
+
+  <div class="script">
+    <span class="tag">🎙 90 秒电梯稿 · 先讲原理，再落 Agent（可直接背）</span>
+    <p>标准多头加 RoPE 是现代模型的基线：Attention 做内容寻址的加权汇总，RoPE 按位置旋转 QK，使打分只依赖相对距离。之后的演进围绕四个独立问题。第一是推理成本：因果性保证历史 KV 不变所以可以缓存，但 cache 随长度线性增长、Decode 每步全量读取，瓶颈在显存带宽——GQA 把 KV 份数砍到四分之一，只省搬运不省 FLOPs；真正省 FLOPs 靠 Prefill 阶段的稀疏 Attention，前提是 kernel 执行前就跳块。第二是长度外推：能表示远距离不等于会用，Qwen2.5-1M 先练到 256K、再用 DCA 分块重组位置外推到 1M，和稀疏化分别解决「会读」和「读得起」。第三是训练稳定性：规模变大后打分膨胀使 softmax 单点独热，Qwen3 用 QK-Norm、Qwen3-Next 进一步上零中心 RMSNorm 和输出门控。第四是根本开销：N² 计算和线性增长的 cache 换成固定状态的线性注意力，牺牲无损召回换效率，Qwen3-Next 按 3:1 混搭分工，Qwen3.5 延续。</p>
+    <p>落到 Agent 开发：这些原理解释了我们每天的问题——为什么多轮之后 TTFT 变慢（prefill 增长、靠前缀缓存救）、为什么 1M 上下文不能取代 RAG（外推≠好用，且中间信息会丢）、为什么 Agent 需要精确召回（混合架构保留全注意力层的理由）。所以做 Context Engineering 时，我按「稳定前缀 + 受控尾部 + 外置记忆」来组织上下文，让模型架构的强弱项各得其所。</p>
+  </div>
+
+  <div class="appendix" id="sx">
+    <h2 style="margin-bottom:18px">附录</h2>
+    <h3>术语速查</h3>
+    <table>
+      <tr><th>术语</th><th>一句话</th><th>后端类比</th></tr>
+      <tr><td>token</td><td>文字的最小处理单位，约一个字或半个词</td><td>—</td></tr>
+      <tr><td>上下文窗口</td><td>一次能装的 token 上限</td><td>工作内存</td></tr>
+      <tr><td>RAG</td><td>先检索材料再塞给模型作答</td><td>开卷考试</td></tr>
+      <tr><td>Prefill / Decode</td><td>并行处理输入 / 逐字生成答案</td><td>批处理任务 / N+1 循环查询</td></tr>
+      <tr><td>TTFT / TPOT</td><td>首字延迟 / 每字生成时间（吐字速度）</td><td>冷启动延迟 / 单次 RT</td></tr>
+      <tr><td>FLOPs</td><td>浮点运算次数，计算量的单位</td><td>—</td></tr>
+      <tr><td>logits</td><td>softmax 之前的原始分数</td><td>—</td></tr>
+      <tr><td>one-hot</td><td>只剩一个 1 其余全 0，「全押一个」</td><td>—</td></tr>
+      <tr><td>梯度</td><td>发给每个参数的整改单：往哪调、调多少</td><td>—</td></tr>
+      <tr><td>Q / K / V</td><td>查询条件 / 索引键 / 数据内容</td><td>WHERE / 二级索引 / 数据行</td></tr>
+      <tr><td>因果遮罩</td><td>只许看过去</td><td>append-only 不可变日志</td></tr>
+      <tr><td>KV cache</td><td>历史 K/V 免重算</td><td>永不失效的进程内缓存</td></tr>
+      <tr><td>MHA / GQA / MQA</td><td>KV 头每 Q 一套 / 分组共享 / 全局一份</td><td>独占库 / 读写分离分组 / 单副本</td></tr>
+      <tr><td>RoPE</td><td>旋转 QK，点积只含相对距离</td><td>时间戳之差代替绝对时刻</td></tr>
+      <tr><td>YaRN</td><td>分频缩放 + 温度修正外推</td><td>分域弹性伸缩</td></tr>
+      <tr><td>DCA</td><td>分块重组位置体系外推</td><td>复合主键：分区号 + 块内偏移</td></tr>
+      <tr><td>稀疏 Attention</td><td>kernel 前跳过低价值分块</td><td>先选索引再执行</td></tr>
+      <tr><td>QK-Norm</td><td>归一化 QK 防打分膨胀</td><td>入口限流器</td></tr>
+      <tr><td>线性注意力</td><td>固定状态递归更新</td><td>聚合物化视图 vs 明细表</td></tr>
+      <tr><td>Delta Rule / Gate</td><td>冲突修正 / 遗忘控制</td><td>UPSERT / TTL 衰减</td></tr>
+      <tr><td>MoE / MTP</td><td>按需激活专家 / 一次预测多 token</td><td>按需扩容 / 乐观提交+校验</td></tr>
+      <tr><td>Prefix Caching</td><td>稳定前缀 KV 跨请求复用</td><td>CDN 对静态资源的边缘缓存</td></tr>
+    </table>
+
+    <h3>参考与事实边界</h3>
+    <p style="font-size:14px">Qwen2.5-1M Technical Report（arXiv:2501.15383）· Qwen3 Technical Report（arXiv:2505.09388）· Qwen3-Next 官方博客与 Alibaba Cloud 工程博客 · Qwen3.5 官方博客 · Gated Delta Networks（arXiv:2412.06464）· RoFormer（arXiv:2104.09864）· YaRN（arXiv:2309.00071）· GQA（arXiv:2305.13245）· MInference（arXiv:2407.02490）· ViT-22B（arXiv:2302.05442）。</p>
+    <div class="co pit"><span class="tag">⚠ 内容边界</span>
+    <p>① 具体型号的配置以官方报告 / config 文件为准；② 显存账单基于典型 7B 配置（28 层 / 4 KV 头 / 头维 128 / fp16）估算，换型号需重算；③ 本文主线是 Attention，MoE 与训练侧仅点到为止；④ 文中「工具选择≈Attention 式检索」是思想类比，不是字面机制。</p></div>
+  </div>
+</section>
+
+<footer>为 Agent 开发面试而作 · 第一性原理 × 后端类比 × 自绘图示 · 2026-08</footer>
+</div></main>
+</div>
+
+<script>
+(function(){
+  var bar=document.getElementById('bar');
+  addEventListener('scroll',function(){var h=document.documentElement;
+    bar.style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight)*100)+'%';},{passive:true});
+  var links=[].slice.call(document.querySelectorAll('nav.toc a'));
+  var secs=links.map(function(a){return document.querySelector(a.getAttribute('href'))}).filter(Boolean);
+  if('IntersectionObserver' in window){
+    var spy=new IntersectionObserver(function(es){es.forEach(function(e){
+      if(e.isIntersecting){links.forEach(function(l){l.classList.toggle('on',l.getAttribute('href')==='#'+e.target.id)});}
+    });},{rootMargin:'-25% 0px -65% 0px'});
+    secs.forEach(function(s){spy.observe(s)});
+  }
+  var NS='http://www.w3.org/2000/svg';
+  function sine(gid,cycles,color,y0,x0,x1,amp){
+    var g=document.getElementById(gid);if(!g)return;
+    var d='M'+x0+' '+y0,n=Math.round(cycles*36);
+    for(var i=1;i<=n;i++){var t=i/n,x=x0+(x1-x0)*t,y=y0+amp*Math.sin(t*cycles*2*Math.PI);
+      d+=' L'+x.toFixed(1)+' '+y.toFixed(1);}
+    var p=document.createElementNS(NS,'path');p.setAttribute('d',d);p.setAttribute('stroke',color);
+    p.setAttribute('fill','none');p.setAttribute('stroke-width','2.2');g.appendChild(p);
+  }
+  sine('sineHi',14,'#1D4ED8',92,60,860,22);
+  sine('sineLo',3.2,'#0F766E',252,60,860,26);
+  function bars(gid,vals,color){
+    var g=document.getElementById(gid);if(!g)return;
+    var w=17,gap=7;
+    vals.forEach(function(v,i){
+      var h=Math.max(v*110,2),r=document.createElementNS(NS,'rect');
+      r.setAttribute('x',i*(w+gap));r.setAttribute('y',110-h);r.setAttribute('width',w);
+      r.setAttribute('height',h);r.setAttribute('rx',3);r.setAttribute('fill',color);
+      r.setAttribute('opacity',v>0.5?'1':(v>0.05?'.7':'.45'));g.appendChild(r);
+    });
+  }
+  bars('softmaxBefore',[0.01,0.015,0.01,0.02,0.01,0.02,0.86,0.015,0.01,0.015,0.008,0.007],'#B42318');
+  bars('softmaxAfter',[0.21,0.11,0.16,0.08,0.14,0.06,0.09,0.05,0.04,0.03,0.02,0.01],'#047857');
+})();
+</script>
+</body>
+</html>
